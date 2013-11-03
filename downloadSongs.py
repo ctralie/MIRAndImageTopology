@@ -42,14 +42,19 @@ if __name__ == '__main__':
 		else:#The lines below the genre definition hold artist links
 			artistsByGenre[genre].append(line.strip())
 	fh.close()
+	#Sort the genres in alphabetical order and output them to the index file
+	#so we know which folder holds which genre
+	genresAlphabetical = [a[0] for a in sorted(artistsByGenre.iteritems())]
+	genreIndexfh = open("%s/index.txt"%PARENTDIR, 'w')
+	for genre in genresAlphabetical:
+		genreIndexfh.write("%s\n"%genre)
+	genreIndexfh.close()
 	
 	#Write the genre names to an index file at the root of the music directory
-	genreIndexfh = open("%s/index.txt"%PARENTDIR, 'w')
 	genreNum = 0
 	artistNum = 0
-	for genre in artistsByGenre:
+	for genre in genresAlphabetical:
 		print "Genre: %s  (%i)"%(genre, len(artistsByGenre[genre]))
-		genreIndexfh.write("%s\n"%genre)
 		dirPrefix = "%s/%i"%(PARENTDIR, genreNum)
 		if not os.path.isdir(dirPrefix):
 			os.mkdir(dirPrefix)
@@ -88,4 +93,3 @@ if __name__ == '__main__':
 		genreNum = genreNum + 1
 		#Go back up to the main directory so a new genre directory can be created/switched to
 		os.chdir("../../")
-	genreIndexfh.close()
