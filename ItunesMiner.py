@@ -129,10 +129,14 @@ class ArtistParser(HTMLParser):
 
 
 def readPage(URL):
-	connection = urllib.urlopen(URL)
-	encoding = connection.headers.getparam('charset')
-	if encoding:
-		page = connection.read().decode(encoding)
-		connection.close()
-		return page
+	try:
+		connection = urllib.urlopen(URL)
+		encoding = connection.headers.getparam('charset')
+		if encoding:
+			page = connection.read().decode(encoding)
+			connection.close()
+			return page
+	except(Exception):
+		print "Failed to connect to url"
+		return ""
 	return ""

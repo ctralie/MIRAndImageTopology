@@ -74,6 +74,7 @@ if __name__ == '__main__':
 						continue #Don't download this song if it's already been downloaded
 					#Download each song
 					downloadSong(song)
+					alreadyDownloaded.add(filename)
 					#Write information about each song to a file so it can be labeled later
 					#Write four lines for each song
 					#FILENAME
