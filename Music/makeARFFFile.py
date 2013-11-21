@@ -2,20 +2,31 @@ import subprocess
 import os
 
 if __name__ == '__main__':
+	genreIndex = open('index.txt', 'r')
+	genreNames = [s.rstrip() for s in genreIndex.readlines()]
+	genreIndex.close()
+
+	arffName = "songs.arff"
 	arffAttributesFile = open('attributes.arff', 'r')
 	attributes = [s.rstrip() for s in arffAttributesFile.readlines()]
-	arffFile = open('songs.arff', 'w')
+	arffFile = open(arffName, 'w')
+	arffFile.write("@relation %s\n"%arffName)
 	for s in attributes:
 		arffFile.write("%s\n"%s)
-	arffFile.write("@attribute genre string\n")
 	arffFile.write("@attribute artist string\n")
 	arffFile.write("@attribute album string\n")
 	arffFile.write("@attribute title string\n")
+	arffFile.write("@attribute genre {")
+	for i in range(0, len(genreNames)):
+		arffFile.write(genreNames[i])
+		if i < len(genreNames) - 1:
+			arffFile.write(",")
+	arffFile.write("}\n")
 	arffFile.write("\n\n@data\n")
 	
-	genreIndex = open('index.txt', 'r')
+	
 	dirNum = 0
-	for genre in [s.rstrip() for s in genreIndex.readlines()]:
+	for genre in genreNames:
 		songsIndex = open("%i/index.txt"%dirNum, 'r')
 		songsLines = songsIndex.readlines()
 		songsLines = [s.rstrip() for s in songsLines]
@@ -29,6 +40,9 @@ if __name__ == '__main__':
 			#Step 1: Extract .wav file
 			wavName = "%s.wav"%(filename.split(".m4a")[0])
 			filename = "%i/%s"%(dirNum, filename)
+			if not os.path.isfile(filename):
+				print "WARNING: %s not found"%filename
+				continue
 			wavName = "%i/%s"%(dirNum, wavName)
 			command = "avconv -i %s -ac 1 %s"%(filename, wavName)
 			print command
@@ -49,7 +63,7 @@ if __name__ == '__main__':
 				arffFile.write("%s,"%field)
 			arffFile.write("\"%s\",\"%s\",\"%s\",\"%s\"\n"%(genre.replace("\"", ""), artist.replace("\"", ""), album.replace("\"", ""), title.replace("\"", "")))
 			#Step 4: Remove the .wav file to free up space
-			os.remove(wavName)
+			if os.path.isfile(wavName):
+				os.remove(wavName)
 		dirNum = dirNum+1
 		songsIndex.close()
-	genreIndex.close()
