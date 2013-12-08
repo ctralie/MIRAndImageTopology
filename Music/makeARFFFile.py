@@ -6,22 +6,22 @@ if __name__ == '__main__':
 	genreNames = [s.rstrip() for s in genreIndex.readlines()]
 	genreIndex.close()
 
-	arffName = "songs.arff"
+	arffName = "songs_AllFeatures.arff"
 	arffAttributesFile = open('attributes.arff', 'r')
 	attributes = [s.rstrip() for s in arffAttributesFile.readlines()]
 	arffFile = open(arffName, 'w')
 	arffFile.write("@relation %s\n"%arffName)
 	for s in attributes:
 		arffFile.write("%s\n"%s)
-	arffFile.write("@attribute artist string\n")
-	arffFile.write("@attribute album string\n")
-	arffFile.write("@attribute title string\n")
 	arffFile.write("@attribute genre {")
 	for i in range(0, len(genreNames)):
-		arffFile.write(genreNames[i])
+		arffFile.write("\"%s\""%genreNames[i])
 		if i < len(genreNames) - 1:
 			arffFile.write(",")
 	arffFile.write("}\n")
+	arffFile.write("@attribute artist string\n")
+	arffFile.write("@attribute album string\n")
+	arffFile.write("@attribute title string\n")
 	arffFile.write("\n\n@data\n")
 	
 	
@@ -52,9 +52,10 @@ if __name__ == '__main__':
 			mfhandle.write(wavName)
 			mfhandle.close()
 			#Step 3: call bextract to extract the features
-			#bextract 0.mf -w out.arff --downsample 2 -fe -sv
-			subprocess.call(["bextract", "temp.mf", "-w", "temp.arff", "--downsample", "2", "-fe", "-sv"])
-			temparffhandle = open('temp.arff', 'r')
+			# https://github.com/marsyas/marsyas/blob/master/src/apps/bextract/bextract.cpp
+			#bextract 0.mf -w out.arff --downsample 2 -fe -sv -mfcc -zcrs -ctd -rlf -flx -sfm -scf -chroma
+			subprocess.call(["bextract", "temp.mf", "-w", "temp.arff", "--downsample", "2", "-fe", "-sv", "-mfcc", "-zcrs", "-ctd", "-rlf", "-flx", "-chroma", "-bf"])
+			temparffhandle = open('MARSYAS_EMPTYtemp.arff', 'r')
 			lines = temparffhandle.readlines()[-1]
 			fields = lines.split(",")
 			fields = fields[0:-1]
