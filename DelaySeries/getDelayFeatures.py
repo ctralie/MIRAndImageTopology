@@ -17,9 +17,12 @@ if __name__ == '__main__':
 	#Step 3: call bextract to extract the features
 	# https://github.com/marsyas/marsyas/blob/master/src/apps/bextract/bextract.cpp
 	#bextract 0.mf -w out.arff --downsample 2 -fe -sv -mfcc -zcrs -ctd -rlf -flx -sfm -scf -chroma
-	subprocess.call(["bextract", "temp.mf", "-w", "temp.arff", "--downsample", "2", "-fe", "-sv", "-mfcc", "-zcrs", "-ctd", "-rlf", "-flx", "-chroma"])
+	devnull = open('/dev/null', 'w')
+	command = ["bextract", "temp.mf", "-w", "temp.arff", "--downsample", "2", "-fe", "-sv", "-mfcc", "-zcrs", "-ctd", "-rlf", "-flx", "-chroma"]
+	subprocess.Popen(command, stdout=devnull)
 	temparffhandle = open('temp.arff', 'r')
 	lines = temparffhandle.readlines()[-1]
 	fields = lines.split(",")
 	fields = fields[0:-1]
-	print fields
+	for f in fields:
+		print "%s "%f,
