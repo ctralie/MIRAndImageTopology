@@ -25,6 +25,7 @@ if __name__ == '__main__':
 	if len(sys.argv) < 2:
 		print "Usage: downloadSongsFromArtists <artistsFile.txt>"
 		sys.exit(0)
+	sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
 	
 	artistListFile = open(sys.argv[1], 'r')
 	lines = artistListFile.readlines()
@@ -36,7 +37,6 @@ if __name__ == '__main__':
 	
 	for i in range(0, len(artistURLs)):
 		#Automatically flush output buffer so I can see download progress
-		sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
 		alreadyDownloaded = set([])
 		baseURL = artistURLs[i]
 		folderName = folderNames[i]
@@ -72,6 +72,7 @@ if __name__ == '__main__':
 				try:
 					writeString = "%s\n%s\n%s\n%s\n"%(filename, song.artist, song.album, song.title)
 					fh.write(writeString)
+					fh.flush()
 					print ".",#Print a . for a successful downloaded/indexed song
 				except(UnicodeEncodeError):
 					print "x",#Print an X for a failed song

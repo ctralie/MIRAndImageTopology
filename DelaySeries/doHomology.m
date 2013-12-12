@@ -12,7 +12,7 @@ function [] = doHomology(data)
     data = bsxfun(@minus, data, minData);
     maxData = max(data);
     data = bsxfun(@times, data, 1./(maxData+eps));
-    data = [data linspace(0, 2, size(data, 1))'];%Add a dimension which is the number of the delay sample
+    %data = [data linspace(0, 2, size(data, 1))'];%Add a dimension which is the number of the delay sample
     %Calculate the euclidean pairwise distance row vector
     disp('Calculating distance matrix....');
     D = pdist(data, 'euclidean');
@@ -23,8 +23,8 @@ function [] = doHomology(data)
         %Do multidimensional scaling
         [Y,eigvals] = cmdscale(D);
         disp('Finished multidimensional scaling');
-        scatter3(Y(:, 1), Y(:, 2), Y(:, 3), 10, 1:size(data, 1));
-        %scatter(Y(:, 1), Y(:, 2), 10, 1:size(data, 1));
+        %scatter3(Y(:, 1), Y(:, 2), Y(:, 3), 10, 1:size(data, 1));
+        scatter(Y(:, 1), Y(:, 2), 10, 1:size(data, 1));
     end
 
     disp('Getting max dist');

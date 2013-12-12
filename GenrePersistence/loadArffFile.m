@@ -1,5 +1,6 @@
 %http://stackoverflow.com/questions/6952315/how-to-load-arff-format-file-to-matlab
 function [attributeNames, attributeTypes, nominalValues, data, songInfo, songInfoNums] = loadArffFile( filename )
+    filename
     %WEKA_HOME = 'C:\Program Files\Weka-3-6';
     WEKA_HOME = '/usr/share/java';
     javaaddpath([WEKA_HOME '/weka.jar']);

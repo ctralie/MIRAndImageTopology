@@ -1,13 +1,11 @@
-Prince
-https://itunes.apple.com/us/artist/prince/id155814
+GratefulDead
+https://itunes.apple.com/us/artist/grateful-dead/id1273063
 Eminem
 https://itunes.apple.com/us/artist/eminem/id111051
 The Beatles
 https://itunes.apple.com/us/artist/the-beatles/id136975
 Yes
 https://itunes.apple.com/us/artist/yes/id154011
-GratefulDead
-https://itunes.apple.com/us/artist/grateful-dead/id1273063
 Aerosmith
 https://itunes.apple.com/us/artist/aerosmith/id115386
 OwlCity
@@ -20,3 +18,5 @@ Future
 https://itunes.apple.com/us/artist/future/id128050210
 Sean Paul
 https://itunes.apple.com/us/artist/sean-paul/id155138
+Prince
+https://itunes.apple.com/us/artist/prince/id155814
