@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <vector>
 #include <assert.h>
+#include <map>
 
 #define VERBOSE 0
 
@@ -124,11 +125,15 @@ struct MemAddressComparator {
 //0D simplex
 class TDAVertex: public TDASimplex {
 public:
-	TDAVertex(double d, int i):TDASimplex(d, 0, i) {}
+	int origIndex;//Used to keep track of the original placement in the distance matrix
+	TDAVertex(double d, int i, int origIndex):TDASimplex(d, 0, i) {
+		this->origIndex = origIndex;
+	}
+	
 	
 	virtual void getSortedNeighbors(vector<TDASimplex*>* neighbors) {}
 	virtual void PrintMex() {
-		mexPrintf("TDAVertex(%i): id = %i, dist = %g\n", level, id, dist);
+		mexPrintf("TDAVertex(%i): origIndex = %i, id = %i, dist = %g\n", level, origIndex, id, dist);
 	}
 };
 
@@ -414,7 +419,7 @@ void doReduction(vector<TDASimplex*>& tdaObjs, vector<HomologyClass*>& homologyC
 				HomologyClass* c = low->getHomologyClass();
 				c->kill(dist);//Kill the 1D homology class associated with the low edge
 				//Also add this column to all other columns that contain the low element
-				//addLowElementToOthers(B, R, i, N, simplexIndices[2], startingIndices);
+				addLowElementToOthers(B, R, i, N, simplexIndices[2], startingIndices);
 			}
 		}
 		else {
@@ -437,6 +442,70 @@ void doReduction(vector<TDASimplex*>& tdaObjs, vector<HomologyClass*>& homologyC
 	}//End of filtration loop
 	delete[] startingIndices;
 }
+
+bool verticesAreOnEdge(TDAVertex* v1, TDAVertex* v2, TDAEdge* e) {
+	return (v1 == e->v1 && v2 == e->v2) || (v1 == e->v2 && v2 == e->v1);
+}
+
+//Assumes c represents a 1D homology class
+//Returns the generator as an ordered vertex list in "cycle"
+//The elements of "cycle" hold the indices of the vertices involved in the cycle
+void extractCycleFromHomologyClass(vector<double>& cycle, HomologyClass* c) {
+	if (c->level != 1) {
+		cerr << "Warning: Trying to extract cycle from homolgy class that is " << c->level << "D\n";
+		return;
+	}
+	map<TDAVertex*, vector<TDAEdge*> > vertexEdges;
+	for (int i = 0; i < (int)c->generators.size(); i++) {
+		TDAEdge* e = (TDAEdge*)c->generators[i];
+		mexPrintf("%g ", e->getDist());
+		vertexEdges[e->v1].push_back(e);
+		vertexEdges[e->v2].push_back(e);
+	}
+	mexPrintf("\n");
+	TDAVertex *startV, *lastV, *V;
+	if (vertexEdges.begin()->second.size() != 2) {
+		cerr << "Error: The first edge for a 1D homology class has a vertex with ";
+		cerr << vertexEdges.begin()->second.size() << " incident edges\n";
+		return;
+	}
+	//Traverse in the order of the first edge emanating from the first vertex
+	TDAEdge *edge = (TDAEdge*)vertexEdges.begin()->second[0];
+	V = edge->v1;
+	lastV = edge->v2;
+	startV = lastV;
+	cycle.push_back((double)(lastV->origIndex+1));
+	while(true) {
+		cycle.push_back((double)(V->origIndex+1));//Add 1 since Matlab is 1-indexed
+		if (vertexEdges[V].size() != 2) {
+			cerr << "Error: The generator for a 1D homology class has a vertex with ";
+			cerr << vertexEdges[V].size() << " incident edges (there should be exactly 2)\n";
+		}
+		//Traverse the cycle to the next vertex
+		edge = vertexEdges[V][0];
+		if (verticesAreOnEdge(V, lastV, edge)) {
+			//Make sure I don't go back to an edge that's already been traversed
+			edge = vertexEdges[V][1];
+		}
+		lastV = V;
+		//Now go to the next vertex
+		V = edge->v1;
+		if (V == lastV) {
+			V = edge->v2;
+		}
+		if (V == startV) {
+			break;//Break once it's looped all the way around
+		}
+	}
+	if (VERBOSE) {
+		mexPrintf("Cycle found: ");
+		for (int i = 0; i < cycle.size(); i++) {
+			mexPrintf("%i ", (int)cycle[i]);
+		}
+		mexPrintf("\n");
+	}
+}
+
 
 //Helper function for finding faces between sets of 3 points
 //Returns the edge in tdaObjs between vertex i and vertex j
@@ -488,7 +557,7 @@ void mexFunction(int nOutArray, mxArray *OutArray[], int nInArray, const mxArray
 	
 	//Add the TDA vertices first
 	for (size_t i = 0; i < N; i++) {
-		TDAVertex* v = new TDAVertex(D[i*N+i], i);
+		TDAVertex* v = new TDAVertex(D[i*N+i], i, i);
 		tdaObjs.push_back(v);
 	}
 	//Now add the edges
@@ -575,7 +644,37 @@ void mexFunction(int nOutArray, mxArray *OutArray[], int nInArray, const mxArray
 		}
 	}
 	
-	//TODO: Save generators in cell array
+	//Save generators in cell array
+	outdims[0] = classes1D.size();
+	outdims[1] = 1;
+	OutArray[2] = mxCreateCellArray(2, outdims);
+	mxArray* cellArrayPtr = OutArray[2];
+	for (int i = 0; i < rowsD; i++) {
+		tdaObjs[i]->PrintMex();
+	}
+	for (int i = 0; i < (int)classes1D.size(); i++) {
+		vector<double> cycle;
+		extractCycleFromHomologyClass(cycle, classes1D[i]);
+		//Copy cycle over to an allocated matrix (note the explicit cast from vector<int> to int*)
+		//mxArray* cyclePtr = mxCreateNumericArray(1, cycle.size(), mxINT32_CLASS, mxREAL);
+		mxArray* cyclePtr = mxCreateDoubleMatrix(1, cycle.size(), mxREAL);
+		double* cycleArray = mxGetPr(cyclePtr);
+		memcpy(cycleArray, (double*)&cycle[0], cycle.size()*sizeof(double));
+		//Place the matrix into the cell array
+		mxSetCell(cellArrayPtr, i, cyclePtr);
+		
+		//Uncomment this to send over edges instead of vertices
+		/*N = (int)classes1D[i]->generators.size();
+		mxArray* cyclePtr = mxCreateDoubleMatrix(N, 2, mxREAL);
+		double* cycleArray = mxGetPr(cyclePtr);
+		for (int k = 0; k < N; k++) {
+			TDAEdge* e = (TDAEdge*)classes1D[i]->generators[k];
+			cycleArray[k] = (double)(e->v1->origIndex+1);
+			cycleArray[N+k] = (double)(e->v2->origIndex+1);
+		}
+		//Place the matrix into the cell array
+		mxSetCell(cellArrayPtr, i, cyclePtr);*/
+	}
 	
 	//Clear all memory from homology classes and TDA Objects
 	for (size_t i = 0; i < homologyClasses.size(); i++) {
