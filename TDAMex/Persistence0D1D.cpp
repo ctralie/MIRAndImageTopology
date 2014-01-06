@@ -365,6 +365,11 @@ void doReduction(vector<TDASimplex*>& tdaObjs, vector<HomologyClass*>& homologyC
 	
 	//Now add each object in the order of the filtration
 	for (int i = 0; i < N; i++) {
+		if (i % (N/20) == 0) {
+			//Print a dot every 5% of progress in the reduction
+			mexPrintf(".");
+			mexEvalString("drawnow");
+		}
 		double dist = tdaObjs[i]->getDist();
 		
 		if (tdaObjs[i]->getLevel() == 0) {//A vertex is added
@@ -451,30 +456,40 @@ bool verticesAreOnEdge(TDAVertex* v1, TDAVertex* v2, TDAEdge* e) {
 //Assumes c represents a 1D homology class
 //Returns the generator as an ordered vertex list in "cycle"
 //The elements of "cycle" hold the indices of the vertices involved in the cycle
-//The value of the float pointed to by dist is equal to the total distance around the cycle
+//The value of the double pointed to by dist is equal to the total distance around the cycle
 void extractCycleFromHomologyClass(vector<double>& cycle, double* dist, HomologyClass* c) {
 	if (c->level != 1) {
 		cerr << "Warning: Trying to extract cycle from homolgy class that is " << c->level << "D\n";
 		return;
 	}
+	TDAVertex *startV, *lastV, *V;
 	*dist = 0;
 	map<TDAVertex*, vector<TDAEdge*> > vertexEdges;
+	int minIndex = -1;
 	for (int i = 0; i < (int)c->generators.size(); i++) {
 		TDAEdge* e = (TDAEdge*)c->generators[i];
 		vertexEdges[e->v1].push_back(e);
 		vertexEdges[e->v2].push_back(e);
 		*dist = *dist + e->getDist();
+		if (e->v1->origIndex < minIndex || minIndex == -1) {
+			minIndex = e->v1->origIndex;
+			lastV = e->v1;
+		}
+		if (e->v2->origIndex < minIndex || minIndex == -1) {
+			minIndex = e->v2->origIndex;
+			lastV = e->v2;
+		}
 	}
-	TDAVertex *startV, *lastV, *V;
+	
 	if (vertexEdges.begin()->second.size() != 2) {
 		cerr << "Error: The first edge for a 1D homology class has a vertex with ";
 		cerr << vertexEdges.begin()->second.size() << " incident edges\n";
 		return;
 	}
 	//Traverse in the order of the first edge emanating from the first vertex
-	TDAEdge *edge = (TDAEdge*)vertexEdges.begin()->second[0];
-	V = edge->v1;
-	lastV = edge->v2;
+	//The first vertex has been chosen so that it is the one ordered the closest
+	//to the beginning of the original list of vertices
+	V = lastV;
 	startV = lastV;
 	cycle.push_back((double)(lastV->origIndex+1));
 	while(true) {
@@ -484,7 +499,7 @@ void extractCycleFromHomologyClass(vector<double>& cycle, double* dist, Homology
 			cerr << vertexEdges[V].size() << " incident edges (there should be exactly 2)\n";
 		}
 		//Traverse the cycle to the next vertex
-		edge = vertexEdges[V][0];
+		TDAEdge* edge = vertexEdges[V][0];
 		if (verticesAreOnEdge(V, lastV, edge)) {
 			//Make sure I don't go back to an edge that's already been traversed
 			edge = vertexEdges[V][1];
@@ -590,7 +605,10 @@ void mexFunction(int nOutArray, mxArray *OutArray[], int nInArray, const mxArray
 		}
 	}
 	
+	mexPrintf("Beginning Reduction\n");
 	doReduction(tdaObjs, homologyClasses);
+	mexPrintf("Finished Reduction\n");
+	mexEvalString("drawnow");
 	vector<HomologyClass*> classes0D;
 	vector<HomologyClass*> classes1D;
 	if (VERBOSE) {
@@ -690,4 +708,5 @@ void mexFunction(int nOutArray, mxArray *OutArray[], int nInArray, const mxArray
 	for (size_t i = 0; i < tdaObjs.size(); i++) {
 		delete tdaObjs[i];
 	}
+	mexPrintf("\n");//Put a line break after the progress dots
 }
