@@ -1,0 +1,31 @@
+function [I1, J1, J1Generators, cycleDists] = getGeneratorsFromTDAJar(D)
+    javaclasspath('jars/tda.jar');
+    import api.*;
+    tda = Tda();
+    tda.RCA1( { 'settingsFile=data/cts.txt', 'supplyDataAs=distanceMatrix'}, D );
+    disp('Finished Persistent Homology');
+    I1 = tda.getResultsRCA1(0).getIntervals();
+    J1 = tda.getResultsRCA1(1).getIntervals();
+
+    tic;
+    [~, J2, J1Generators, cycleDists] = Persistence0D1D(D);
+    toc;
+
+    newGenerators = cell(1, size(J1, 1));
+    newCycleDists = zeros(1, size(J1, 1));
+    for k = 1:size(J1, 1)
+       birthTime = J1(k, 1);
+       indices = find( J2(:, 1) == repmat(birthTime, [size(J2, 1), 1]), size(J2, 1) );
+       if length(indices) == 0
+           disp('Error: Cycle not found by my code which was found by Prof Harers code');
+       elseif length(indices) > 1
+           disp('Warning: More than one cycle found at the same birth time in my code');
+       end
+       if length(indices) == 1
+          newGenerators{k} = J1Generators{indices(1)};
+          newCycleDists(k) = cycleDists(k);
+       end
+    end
+    J1Generators = newGenerators;
+    cycleDists = newCycleDists;
+end

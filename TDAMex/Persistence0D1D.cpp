@@ -11,6 +11,7 @@
 #include <map>
 
 #define VERBOSE 0
+#define ADDFACES 0  //Whether or not to include faces between all triples of points
 
 using namespace std;
 
@@ -450,19 +451,20 @@ bool verticesAreOnEdge(TDAVertex* v1, TDAVertex* v2, TDAEdge* e) {
 //Assumes c represents a 1D homology class
 //Returns the generator as an ordered vertex list in "cycle"
 //The elements of "cycle" hold the indices of the vertices involved in the cycle
-void extractCycleFromHomologyClass(vector<double>& cycle, HomologyClass* c) {
+//The value of the float pointed to by dist is equal to the total distance around the cycle
+void extractCycleFromHomologyClass(vector<double>& cycle, double* dist, HomologyClass* c) {
 	if (c->level != 1) {
 		cerr << "Warning: Trying to extract cycle from homolgy class that is " << c->level << "D\n";
 		return;
 	}
+	*dist = 0;
 	map<TDAVertex*, vector<TDAEdge*> > vertexEdges;
 	for (int i = 0; i < (int)c->generators.size(); i++) {
 		TDAEdge* e = (TDAEdge*)c->generators[i];
-		mexPrintf("%g ", e->getDist());
 		vertexEdges[e->v1].push_back(e);
 		vertexEdges[e->v2].push_back(e);
+		*dist = *dist + e->getDist();
 	}
-	mexPrintf("\n");
 	TDAVertex *startV, *lastV, *V;
 	if (vertexEdges.begin()->second.size() != 2) {
 		cerr << "Error: The first edge for a 1D homology class has a vertex with ";
@@ -571,17 +573,19 @@ void mexFunction(int nOutArray, mxArray *OutArray[], int nInArray, const mxArray
 		}
 	}
 	//Now add the faces (Look between all sets of 3 points)
-	for (size_t i = 0; i < N; i++) {
-		for (size_t j = i+1; j < N; j++) {
-			for (size_t k = j+1; k < N; k++) {
-				//Edge i-j
-				TDAEdge* e1 = getEdge(tdaObjs, i, j, N);
-				//Edge j-k
-				TDAEdge* e2 = getEdge(tdaObjs, j, k, N);
-				//Edge i-k
-				TDAEdge* e3 = getEdge(tdaObjs, k, i, N);
-				TDATri* f = new TDATri(-1, e1, e2, e3);
-				tdaObjs.push_back(f);
+	if (ADDFACES) {
+		for (size_t i = 0; i < N; i++) {
+			for (size_t j = i+1; j < N; j++) {
+				for (size_t k = j+1; k < N; k++) {
+					//Edge i-j
+					TDAEdge* e1 = getEdge(tdaObjs, i, j, N);
+					//Edge j-k
+					TDAEdge* e2 = getEdge(tdaObjs, j, k, N);
+					//Edge i-k
+					TDAEdge* e3 = getEdge(tdaObjs, k, i, N);
+					TDATri* f = new TDATri(-1, e1, e2, e3);
+					tdaObjs.push_back(f);
+				}
 			}
 		}
 	}
@@ -649,12 +653,10 @@ void mexFunction(int nOutArray, mxArray *OutArray[], int nInArray, const mxArray
 	outdims[1] = 1;
 	OutArray[2] = mxCreateCellArray(2, outdims);
 	mxArray* cellArrayPtr = OutArray[2];
-	for (int i = 0; i < rowsD; i++) {
-		tdaObjs[i]->PrintMex();
-	}
+	double* cycleDists = new double[classes1D.size()];
 	for (int i = 0; i < (int)classes1D.size(); i++) {
 		vector<double> cycle;
-		extractCycleFromHomologyClass(cycle, classes1D[i]);
+		extractCycleFromHomologyClass(cycle, &cycleDists[i], classes1D[i]);
 		//Copy cycle over to an allocated matrix (note the explicit cast from vector<int> to int*)
 		//mxArray* cyclePtr = mxCreateNumericArray(1, cycle.size(), mxINT32_CLASS, mxREAL);
 		mxArray* cyclePtr = mxCreateDoubleMatrix(1, cycle.size(), mxREAL);
@@ -675,6 +677,11 @@ void mexFunction(int nOutArray, mxArray *OutArray[], int nInArray, const mxArray
 		//Place the matrix into the cell array
 		mxSetCell(cellArrayPtr, i, cyclePtr);*/
 	}
+	
+	OutArray[3] = mxCreateDoubleMatrix(1, classes1D.size(), mxREAL);
+	double* cycleDistsArray = mxGetPr(OutArray[3]);
+	memcpy(cycleDistsArray, cycleDists, classes1D.size()*sizeof(double));
+	delete[] cycleDists;
 	
 	//Clear all memory from homology classes and TDA Objects
 	for (size_t i = 0; i < homologyClasses.size(); i++) {
