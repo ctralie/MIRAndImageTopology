@@ -1,4 +1,4 @@
-function [] = doHomology( filename )
+function [I, J, JGenerators] = doHomology( filename )
     addpath('../TDAMex');
     [DelaySeries, Fs, SampleDelays] = getDelaySeriesFeatures( filename, 2048, 1, 10 );
     fprintf(1, 'Finished computing delay series with %i samples\n', length(SampleDelays));
