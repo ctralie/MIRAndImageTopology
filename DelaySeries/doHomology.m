@@ -1,10 +1,12 @@
-function [I, J, JGenerators] = doHomology( filename )
+function [I, J, JGenerators] = doHomology( filename,  hopSize, skipSize, windowSize )
     addpath('../TDAMex');
-    [DelaySeries, Fs, SampleDelays] = getDelaySeriesFeatures( filename, 2048, 1, 10 );
+    [DelaySeries, Fs, SampleDelays] = getDelaySeriesFeatures( filename, hopSize, skipSize, windowSize );
     fprintf(1, 'Finished computing delay series with %i samples\n', length(SampleDelays));
     %Normalize data to the range [0, 1] in each dimension
-    DelaySeries = DelaySeries(1:size(DelaySeries,1)/6, :);
-    SampleDelays = SampleDelays(1:size(SampleDelays, 1)/6, :);
+%     songFrac = 6;
+    songFrac = 1;
+    DelaySeries = DelaySeries(1:size(DelaySeries,1)/songFrac, :);
+    SampleDelays = SampleDelays(1:size(SampleDelays/songFrac, 1), :);
     N = size(DelaySeries, 1);
     minData = min(DelaySeries);
     DelaySeries = bsxfun(@minus, DelaySeries, minData);
@@ -25,7 +27,7 @@ function [I, J, JGenerators] = doHomology( filename )
     figure;
     for i = 1:dimx*dimx
        subplot(dimx, dimx, i);
-       plot(1000*SampleDelays(JGenerators{genRange(i)})/Fs);
+       plot(SampleDelays(JGenerators{genRange(i)})/Fs);
        xlabel('Sample Number');
        ylabel('Seconds');
        title( sprintf('%g', J(genRange(i), 2) - J(genRange(i), 1)) );

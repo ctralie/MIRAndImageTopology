@@ -41,13 +41,6 @@ for i = 1:length(artistNames)
 end
 disp('Finished scaling data');
 
-%Figure out the threshold for the bottom 5% of distances
-D = [];
-for i = 1:length(artistNames)
-   D = [D pdist(artistData{i})];
-end
-distanceCutoff = quantile(D, 0.1);
-
 
 javaclasspath('jars/tda.jar');
 import api.*;
@@ -59,7 +52,6 @@ u = rand(size(artistData{1}, 2), 1);
 u = u/(norm(u) + eps);
 
 Is = {};
-Ys = {};
 mstMasks = {};
 
 for i = 1:length(artistNames)
@@ -97,6 +89,8 @@ for i = 1:length(artistNames)
     fprintf(1, 'Finished Multidimensional Scaling\n');
     Ys{i} = Y(:, 1:2);%Only store first 2 dimensions of Y
 end
+
+%Scale all of the songs from all of the artists together
 
 %Now create plots
 minI = inf;

@@ -69,7 +69,7 @@ function [DelaySeries, Fs, SampleDelays] = getDelaySeriesFeatures( filename, hop
     for off = 1:NDelays
         i1 = 1 + (off-1)*skipSize;
         i2 = i1 + windowSize - 1;
-        SampleDelays(off) = i1;
+        SampleDelays(off) = i1*hopSize;
         %Compute mean and standard deviation over the window of: Centroid, Roloff, Flux, ZeroCrossings, Chroma, MFCC
         StackedFeatures = [Centroid(:, i1:i2); Roloff(:, i1:i2); Flux(:, i1:i2); ZeroCrossings(:, i1:i2); MFCC(:, i1:i2); Chroma(:, i1:i2)];
         MeanStacked = mean(StackedFeatures, 2);

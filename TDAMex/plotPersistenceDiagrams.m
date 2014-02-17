@@ -7,6 +7,8 @@ function [] = plotPersistenceDiagrams( I, J, minDist, maxDist )
     ylim([minDist, maxDist]);
     axis square;
     title('0D Persistence Diagram');
+    xlabel('Birth Time');
+    ylabel('Death Time');
     
     colors = mod((1:size(J, 1)) - 1, size(c, 1)) + 1;
     colors = c(colors, :);
@@ -22,4 +24,6 @@ function [] = plotPersistenceDiagrams( I, J, minDist, maxDist )
     plot([minDist, maxDist], [minDist, maxDist], 'r');
     axis square;
     title('1D Persistence Diagram');
+    xlabel('Birth Time');
+    ylabel('Death Time');
 end
