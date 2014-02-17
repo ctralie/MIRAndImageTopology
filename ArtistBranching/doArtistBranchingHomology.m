@@ -1,6 +1,6 @@
 if exist('artistData.mat') == 0
     addpath('../GenrePersistence');
-    artistNames = {'Beatles', 'Eminem', 'Prince', 'Ramones', 'SeanPaul', 'Yes'};
+    artistNames = {'Beatles', 'Eminem', 'Prince', 'Ramones', 'SeanPaul', 'Yes', 'Future', 'GratefulDead', 'Kesha', 'OwlCity'};
     artistData = {};
     %Load in data
     doMDS = 0;
@@ -13,11 +13,11 @@ if exist('artistData.mat') == 0
     end
     %Make sure I'm comparing the same number of songs per artist for
     %consistency
-    fprintf('Randomly sampling %i songs per artist\n', minSongs);
-    for i = 1:length(artistNames)
-       %Randomly sample the min number of songs
-       artistData{i} = artistData{i}(randperm(minSongs), :); 
-    end
+    %fprintf('Randomly sampling %i songs per artist\n', minSongs);
+    %for i = 1:length(artistNames)
+    %   %Randomly sample the min number of songs
+    %   artistData{i} = artistData{i}(randperm(minSongs), :); 
+    %end
     save('artistData.mat', 'artistNames', 'artistData');
 else
     load('artistData.mat');
@@ -57,6 +57,11 @@ tda = Tda();
 %positive high dimensional quadrant
 u = rand(size(artistData{1}, 2), 1);
 u = u/(norm(u) + eps);
+
+Is = {};
+Ys = {};
+mstMasks = {};
+
 for i = 1:length(artistNames)
     fprintf(1, 'Computing persistent homology for %s...\n', artistNames{i});
     %For each artist compute distance matrix that corresponds with the filtration
@@ -64,17 +69,20 @@ for i = 1:length(artistNames)
     %Step 1: Extract a sparse graph from the set of points by taking the
     %strongest 10% of edges only
     interDs = pdist(artistData{i});
-    toKeep = squareform(interDs) < distanceCutoff;
+    mstMask = getMSTMask(squareform(interDs));
+    mstMasks{i} = mstMask;
     
     %Step 2: compute dot product of each point with the direction vector
     dotProds = artistData{i}*u;
-    minDist = min(dotProds);
-    maxDist = max(dotProds);
+    minI = min(dotProds);
+    maxI = max(dotProds);
 
     %Step 3: Create the distance matrix corresponding to this filtration
     DRows = repmat(dotProds, [1, length(dotProds)]);
     DCols = repmat(dotProds', [length(dotProds), 1]);
-    D = max(DRows, DCols).*toKeep;%Don't add the edges until both points have been added
+    D = max(DRows, DCols).*mstMask;%Don't add the edges until both points have been added
+    D(mstMask == 0) = inf;%Don't include edges that aren't in the MST
+    %TODO: Make this all sparse
     %Also mask the edges by the graph that was extracted before
     %D = diag(dotProds);
     %D = squareform(pdist(artistData{i}));
@@ -82,27 +90,60 @@ for i = 1:length(artistNames)
     tda.RCA1( { 'settingsFile=data/cts.txt', 'supplyDataAs=distanceMatrix',sprintf('distanceBoundOnEdges=%g', 20)}, D );
     %I = get0DPersistence(D);
     I = tda.getResultsRCA1(0).getIntervals();
-    subplot(2, 3, i);
-    plot(I(:, 1), I(:, 2), '.');
-    sum(isnan(I(:, 2)))
-    minDist = min(min(I));
-    maxDist = max(max(I));
-    minDist = -1;
-    
-    xlim([minDist, maxDist]);
-    ylim([minDist, maxDist]);
-    hold on;
-    plot([minDist, maxDist], [minDist, maxDist], 'r');
-    axis square;
-    title(sprintf('%s', artistNames{i}));
+    Is{i} = I;
+    %Do multidimensional scaling
+    fprintf(1, 'Doing Multidimensional Scaling...\n');
+    [Y,eigvals] = cmdscale(interDs);
+    fprintf(1, 'Finished Multidimensional Scaling\n');
+    Ys{i} = Y(:, 1:2);%Only store first 2 dimensions of Y
 end
 
-% if doMDS == 1
-%     %Do multidimensional scaling
-%     [Y,eigvals] = cmdscale(D);
-%     gscatter(Y(:, 1), Y(:, 2), cell2mat(songInfoNums(:, 1)) );
-%     genreNames = nominalValues(end-3, :);
-%     genreNames = genreNames{1};
-%     legend(genreNames);
-% end
+%Now create plots
+minI = inf;
+maxI = -inf;
+minDist = inf;
+maxDist = -inf;
+for i = 1:length(Is)
+    minI = min(min(Is{i}(:)), minI);
+    maxI = max(max(Is{i}(:)), maxI);
+    minDist = min(min(Ys{i}(:)), minDist);
+    maxDist = max(max(Ys{i}(:)), maxDist);
+end
 
+fHandle = fopen('imageTables.html', 'w');
+fprintf(fHandle, '<table>\n');
+
+PrintColumns = 2;
+for i = 1:length(artistNames)
+    %Plot Persistence Diagram
+    subplot(1, 2, 1);
+    plot(Is{i}(:, 1), Is{i}(:, 2), '.');
+    sum(isnan(I(:, 2)))
+    
+    xlim([minI, maxI]);
+    ylim([minI, maxI]);
+    hold on;
+    plot([minI, maxI], [minI, maxI], 'r');
+    title(sprintf('%s 0D Persistence', artistNames{i}));
+    axis equal;
+    
+    %Plot MST
+    subplot(1, 2, 2);
+    plotMST(mstMasks{i}, Ys{i});
+    xlim([minDist, maxDist]);
+    ylim([minDist, maxDist]);
+    axis equal;
+    title(sprintf('%s MST', artistNames{i}));
+    
+    print('-dpng', '-r100', sprintf('%s.png', artistNames{i}));
+    if mod(i-1, PrintColumns) == 0
+        fprintf(fHandle, '<tr>');
+    end
+    fprintf(fHandle, '<td><img src = "%s"%></td>', sprintf('%s.png', artistNames{i}));
+    if mod(i-1, PrintColumns) == PrintColumns-1
+       fprintf(fHandle, '</tr>\n');
+    end
+    clf;
+end
+fprintf(fHandle, '</table>');
+fclose(fHandle);
