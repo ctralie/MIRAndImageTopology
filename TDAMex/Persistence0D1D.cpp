@@ -524,24 +524,7 @@ void extractCycleFromHomologyClass(vector<double>& cycle, double* dist, Homology
 }
 
 
-//Helper function for finding faces between sets of 3 points
-//Returns the edge in tdaObjs between vertex i and vertex j
-TDAEdge* getEdge(vector<TDASimplex*>& tdaObjs, int i, int j, int N) {
-	//Assume distances are symmetric between pairs of vertices and that
-	//the upper triangular part of the distance matrix has been specified
-	if (j < i) {
-		return getEdge(tdaObjs, j, i, N);
-	}
-	else if (j == i) { 
-		cerr << "Error: Cannot return edge between a vertex and itself\n";
-		return NULL;
-	}
-	int index = N + i*N - i*(i+1)/2 + (j - (i + 1));
-	TDAEdge* ret = (TDAEdge*)tdaObjs[index];
-	//mexPrintf("%i(%g): %i %i\n", index, ret->getDist(), ret->v1->getID(), ret->v2->getID());
-	return ret;
-}
-
+//Arguments: D (distance matrix), maxEdgeLength (optional)
 void mexFunction(int nOutArray, mxArray *OutArray[], int nInArray, const mxArray *InArray[]) {  
 	double* D;
 	
@@ -567,6 +550,15 @@ void mexFunction(int nOutArray, mxArray *OutArray[], int nInArray, const mxArray
 	D = (double*)mxGetPr(InArray[0]);
 	size_t N = rowsD;
 	
+	bool isMaxEdgeLength = false;
+	double maxEdgeLength = 0;
+	//A maximum edge length has been specified
+	if (nInArray >= 2) {
+		double* eLPtr = (double*)mxGetPr(InArray[1]);
+		isMaxEdgeLength = true;
+		maxEdgeLength = *eLPtr;
+	}
+	
 	vector<TDASimplex*> tdaObjs;
 	vector<HomologyClass*> homologyClasses;
 	//NOTE: I only look at the upper triangular portion of the matrix because
@@ -578,26 +570,40 @@ void mexFunction(int nOutArray, mxArray *OutArray[], int nInArray, const mxArray
 		tdaObjs.push_back(v);
 	}
 	//Now add the edges
+	map<int, TDAEdge* > tdaEdgeMap;//Store a map of the edges that are added
+	//Index the map by N*i + j so that there is a unique ID for every edge (i, j)
 	for (size_t i = 0; i < N; i++) {
 		for (size_t j = i+1; j < N; j++) {
 			double dist = D[j*N+i];
+			if (isMaxEdgeLength && dist > maxEdgeLength)
+				continue;
 			TDAVertex* v1 = (TDAVertex*)tdaObjs[i];
 			TDAVertex* v2 = (TDAVertex*)tdaObjs[j];
 			TDAEdge* e = new TDAEdge(dist, -1, v1, v2);
 			tdaObjs.push_back(e);
+			tdaEdgeMap[N*i + j] = e;
 		}
 	}
+	mexPrintf("%i edges added\n", tdaEdgeMap.size());
 	//Now add the faces (Look between all sets of 3 points)
 	if (ADDFACES) {
 		for (size_t i = 0; i < N; i++) {
 			for (size_t j = i+1; j < N; j++) {
 				for (size_t k = j+1; k < N; k++) {
+					//Only add faces along a set of 3 edges that have actually
+					//been added
+					if (tdaEdgeMap.find(i*N+j) == tdaEdgeMap.end())
+						continue;
+					if (tdaEdgeMap.find(j*N+k) == tdaEdgeMap.end())
+						continue;
+					if (tdaEdgeMap.find(i*N+k) == tdaEdgeMap.end())
+						continue;
 					//Edge i-j
-					TDAEdge* e1 = getEdge(tdaObjs, i, j, N);
+					TDAEdge* e1 = tdaEdgeMap[i*N+j];
 					//Edge j-k
-					TDAEdge* e2 = getEdge(tdaObjs, j, k, N);
+					TDAEdge* e2 = tdaEdgeMap[j*N+k];
 					//Edge i-k
-					TDAEdge* e3 = getEdge(tdaObjs, k, i, N);
+					TDAEdge* e3 = tdaEdgeMap[i*N+k];
 					TDATri* f = new TDATri(-1, e1, e2, e3);
 					tdaObjs.push_back(f);
 				}

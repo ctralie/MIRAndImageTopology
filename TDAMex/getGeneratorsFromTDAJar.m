@@ -1,14 +1,29 @@
-function [I1, J1, J1Generators, cycleDists] = getGeneratorsFromTDAJar(D)
+function [I1, J1, J1Generators, cycleDists] = getGeneratorsFromTDAJar(D, varargin)
     javaclasspath('jars/tda.jar');
     import api.*;
     tda = Tda();
-    tda.RCA1( { 'settingsFile=data/cts.txt', 'supplyDataAs=distanceMatrix'}, D );
+    
+    maxEdgeLength = [];
+    if nargin > 1
+        maxEdgeLength = varargin{1};
+    end
+    
+    if isempty(maxEdgeLength)
+        tda.RCA1( { 'settingsFile=data/cts.txt', 'supplyDataAs=distanceMatrix'}, D );
+    else
+        tda.RCA1( { 'settingsFile=data/cts.txt', 'supplyDataAs=distanceMatrix', ...
+            sprintf('distanceBoundOnEdges=%g', maxEdgeLength)}, D );
+    end
     disp('Finished Persistent Homology');
     I1 = tda.getResultsRCA1(0).getIntervals();
     J1 = tda.getResultsRCA1(1).getIntervals();
 
     tic;
-    [~, J2, J1Generators, cycleDists] = Persistence0D1D(D);
+    if isempty(maxEdgeLength)
+        [~, J2, J1Generators, cycleDists] = Persistence0D1D(D);
+    else
+        [~, J2, J1Generators, cycleDists] = Persistence0D1D(D, maxEdgeLength);
+    end
     toc;
 
     newGenerators = cell(1, size(J1, 1));

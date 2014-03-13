@@ -9,11 +9,12 @@ D = squareform(pdist(X));
 minDist = -1;
 maxDist = max(D(:));
 
-[I, J, generators, cycleDists] = getGeneratorsFromTDAJar(D);
+maxEdgeLength = 0.2;
+[I, J, generators, cycleDists] = getGeneratorsFromTDAJar(D, maxEdgeLength);
 plotPersistenceDiagrams(I, J, minDist, maxDist);
 [~, genRange] = sort(J(:, 2) - J(:, 1), 'descend');
 figure;
-genRange = genRange(1:16);
+genRange = genRange(1:min(16, size(J, 1)));
 dimx = floor(sqrt(length(genRange)));
 for i = 1:dimx*dimx
     subplot(dimx, dimx, i);
