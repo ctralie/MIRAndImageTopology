@@ -4,8 +4,8 @@ function [I, J, JGenerators] = doHomology( filename,  hopSize, skipSize, windowS
     fprintf(1, 'Finished computing delay series with %i samples\n', length(SampleDelays));
     
     %Only look at the first 1/songFrac amount of the song
-    songFrac = 6;
-%    songFrac = 1;
+    songFrac = 2;
+    maxEdgeLength = 0.7;
     DelaySeries = DelaySeries(1:size(DelaySeries,1)/songFrac, :);
     SampleDelays = SampleDelays(1:size(SampleDelays/songFrac, 1), :);
     N = size(DelaySeries, 1);
@@ -22,7 +22,7 @@ function [I, J, JGenerators] = doHomology( filename,  hopSize, skipSize, windowS
     maxDist = max(D(:));
     disp('Finished calculating distance matrix');
     disp('Beginning to get persistence points and generators...');
-    [I, J, JGenerators] = getGeneratorsFromTDAJar(D);
+    [I, J, JGenerators] = getGeneratorsFromTDAJar(D, maxEdgeLength);
     disp('Finished getting persistence points and generators.');
     plotPersistenceDiagrams(I, J, minDist, maxDist);
     %[~, genOrder] = sort(J(:, 2) - J(:, 1), 'descend');%Sort the points in

@@ -7,7 +7,17 @@ function [I1, J1, J1Generators, cycleDists] = getGeneratorsFromTDAJar(D, varargi
     if nargin > 1
         maxEdgeLength = varargin{1};
     end
+
+    fprintf(1, 'Executing my code...\n');
+    tic;
+    if isempty(maxEdgeLength)
+        [~, J2, J1Generators, cycleDists] = Persistence0D1D(D);
+    else
+        [~, J2, J1Generators, cycleDists] = Persistence0D1D(D, maxEdgeLength);
+    end
+    toc;
     
+    fprintf(1, 'Executing John''s code...\n');
     if isempty(maxEdgeLength)
         tda.RCA1( { 'settingsFile=data/cts.txt', 'supplyDataAs=distanceMatrix'}, D );
     else
@@ -17,14 +27,6 @@ function [I1, J1, J1Generators, cycleDists] = getGeneratorsFromTDAJar(D, varargi
     disp('Finished Persistent Homology');
     I1 = tda.getResultsRCA1(0).getIntervals();
     J1 = tda.getResultsRCA1(1).getIntervals();
-
-    tic;
-    if isempty(maxEdgeLength)
-        [~, J2, J1Generators, cycleDists] = Persistence0D1D(D);
-    else
-        [~, J2, J1Generators, cycleDists] = Persistence0D1D(D, maxEdgeLength);
-    end
-    toc;
 
     newGenerators = cell(1, size(J1, 1));
     newCycleDists = zeros(1, size(J1, 1));
