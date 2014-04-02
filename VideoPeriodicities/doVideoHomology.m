@@ -1,4 +1,4 @@
-function [] = doVideoHomology( filename )
+function [I, J, JGenerators] = doVideoHomology( filename )
     addpath('../ImageToolbox/channels');
     addpath('../TDAMex');
     obj = VideoReader(filename);
@@ -7,8 +7,12 @@ function [] = doVideoHomology( filename )
     hogs = [];
     hogsavg = [];
     fprintf(1, 'Doing HOG on %i frames...\n', N);
-    for n = 1:N
-        I = single(read(obj, n));
+    lastFrame = single(rgb2gray(read(obj, 1)));
+    for n = 2:N
+        thisFrame = single(rgb2gray(read(obj, n)));
+        I = thisFrame - lastFrame;
+        lastFrame = thisFrame;
+        %I = thisFrame;
         hog = fhog(I, 16, 9);
         if isempty(hogs)
            hogs = zeros(N, length(hog(:)));
