@@ -29,12 +29,11 @@ if __name__ == '__main__':
 						artistsByGenre[genre] = []
 					#File this artist by the genre reported on the artist page
 					artistsByGenre[genre].append(artistParser)
-					artistByURL[artistURL] = artistParser		
+					artistByURL[artistURL] = artistParser	
 		fh = open('MainArtistList.txt', 'w')
-		for genre in artistsByGenre:
-			fh.write("========== %s ==========\n"%genre)
-			for a in artistsByGenre[genre]:
-				fh.write("%s\n"%a.URL)
-		fh.close()					
-#		except(UnicodeDecodeError):
-#			print "Failed on %s"%genreURL
+	
+	for genre in artistsByGenre:
+		fh.write("========== %s ==========\n"%genre)
+		for a in artistsByGenre[genre]:
+			fh.write("%s\n"%a.URL)
+	fh.close()
