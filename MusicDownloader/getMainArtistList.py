@@ -17,6 +17,7 @@ if __name__ == '__main__':
 		for artist in artists:
 			[artistName, artistURL] = artist
 			print "%i different genres so far"%len(artistsByGenre)
+			print "%i different artists so far"%len(artistByURL)
 			print "Reading %s"%artistName
 			if not (artistURL in artistByURL):#Don't load the same artist twice
 				#Load the artist page and check the genre there to be sure
