@@ -56,6 +56,7 @@ if __name__ == '__main__':
 	genreNum = 0
 	artistNum = 0
 	for genre in genresAlphabetical:
+		songsDownloaded = 0
 		print "Genre: %s  (%i)"%(genre, len(artistsByGenre[genre]))
 		dirPrefix = "%s/%i"%(PARENTDIR, genreNum)
 		if not os.path.isdir(dirPrefix):
@@ -73,31 +74,46 @@ if __name__ == '__main__':
 					filename = song.url.split("/")[-1]
 					if filename in alreadyDownloaded:
 						print "o",#Print o for already downloaded song
+						songsDownloaded = songsDownloaded + 1
 						continue #Don't download this song if it's already been downloaded
 					#Download each song
-					downloadSong(song)
-					alreadyDownloaded.add(filename)
+					year = 0
+					genres = ["u'%s'"%genre]
 					#Get query Discogs for additional info about genre and year of song
-					s = discogs.Search("%s %s %s"%(song.title, song.artist, song.album))
-					res = s.results()[0]
-					year = res.data['year']
-					genres = res.data['genres']
+					try:
+						s = discogs.Search("%s %s"%(song.title, song.artist))
+						res = s.results()[0]
+						if 'year' in res.data and 'genres' in res.data:
+							year = res.data['year']
+							genres = res.data['genres']
+					except(discogs.HTTPError):
+						pass
 					#Write information about each song to a file so it can be labeled later
 					#Write four lines for each song
 					#FILENAME
 					#ARTIST
 					#ALBUM
 					#TITLE
-					try:
-						writeString = "%s\n%s\n%s\n%s\n%s\n%s\n"%(filename, song.artist, song.album, song.title, year, genres)
-						fh.write(writeString)
-						print ".",#Print a . for a successful downloaded/indexed song
-					except(UnicodeEncodeError):
-						print "x",#Print an X for a failed song
-						pass
+					if year > 0:
+						#Only write the song if it was found on discogs
+						downloadSong(song)
+						alreadyDownloaded.add(filename)
+						try:
+							writeString = "%s\n%s\n%s\n%s\n%s\n%s\n"%(filename, song.artist, song.album, song.title, year, genres)
+							fh.write(writeString)
+							print ".",#Print a . for a successful downloaded/indexed song
+							songsDownloaded = songsDownloaded + 1
+						except(UnicodeEncodeError):
+							print "x",#Print an X for a failed song
+							pass
+					else:
+						print "*",
 				fh.close()
 			print ""#Newline
 			artistNum = artistNum + 1
 		genreNum = genreNum + 1
+		print "\n\n========================="
+		print "%i Songs Downloaded for %s"%(songsDownloaded, genre)
+		print "=========================\n\n"
 		#Go back up to the main directory so a new genre directory can be created/switched to
 		os.chdir("../../")
