@@ -88,6 +88,9 @@ if __name__ == '__main__':
 							genres = res.data['genres']
 					except(discogs.HTTPError):
 						pass
+					except:
+						print "Unexpected error:", sys.exc_info()[0]
+						pass
 					#Write information about each song to a file so it can be labeled later
 					#Write four lines for each song
 					#FILENAME
