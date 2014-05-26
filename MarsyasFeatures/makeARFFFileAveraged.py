@@ -2,12 +2,12 @@ import subprocess
 import os
 
 if __name__ == '__main__':
-	genreIndex = open('index.txt', 'r')
+	genreIndex = open('../MusicDownloader/Music/index.txt', 'r')
 	genreNames = [s.rstrip() for s in genreIndex.readlines()]
 	genreIndex.close()
-
-	arffName = "songs_AllFeatures.arff"
-	arffAttributesFile = open('attributes.arff', 'r')
+	
+	arffName = "songs_AllFeaturesAveraged.arff"
+	arffAttributesFile = open('attributesAveraged.arff', 'r')
 	attributes = [s.rstrip() for s in arffAttributesFile.readlines()]
 	arffFile = open(arffName, 'w')
 	arffFile.write("@relation %s\n"%arffName)
@@ -25,18 +25,22 @@ if __name__ == '__main__':
 	arffFile.write("\n\n@data\n")
 	
 	
+	os.chdir('../MusicDownloader/Music')
 	dirNum = 0
 	for genre in genreNames:
 		songsIndex = open("%i/index.txt"%dirNum, 'r')
 		songsLines = songsIndex.readlines()
 		songsLines = [s.rstrip() for s in songsLines]
-		for i in range(0, len(songsLines)/4):
+		#This now assumes additional data has been collected from discogs
+		for i in range(0, len(songsLines)/6): 
 			#filename, song.artist, song.album, song.title
-			i1 = i*4
+			i1 = i*6
 			filename = songsLines[i1]
 			artist = songsLines[i1 + 1]
 			album = songsLines[i1 + 2]
 			title = songsLines[i1 + 3]
+			year = songsLines[i1 + 4]
+			genres = songsLines[i1 + 5]
 			#Step 1: Extract .wav file
 			wavName = "%s.wav"%(filename.split(".m4a")[0])
 			filename = "%i/%s"%(dirNum, filename)
@@ -55,7 +59,7 @@ if __name__ == '__main__':
 			# https://github.com/marsyas/marsyas/blob/master/src/apps/bextract/bextract.cpp
 			#bextract 0.mf -w out.arff --downsample 2 -fe -sv -mfcc -zcrs -ctd -rlf -flx -sfm -scf -chroma
 			subprocess.call(["bextract", "temp.mf", "-w", "temp.arff", "--downsample", "2", "-fe", "-sv", "-mfcc", "-zcrs", "-ctd", "-rlf", "-flx", "-chroma", "-bf"])
-			temparffhandle = open('MARSYAS_EMPTYtemp.arff', 'r')
+			temparffhandle = open('temp.arff', 'r')
 			lines = temparffhandle.readlines()[-1]
 			fields = lines.split(",")
 			fields = fields[0:-1]
