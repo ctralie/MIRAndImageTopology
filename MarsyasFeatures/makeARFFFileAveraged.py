@@ -36,7 +36,7 @@ if __name__ == '__main__':
 		songsLines = songsIndex.readlines()
 		songsLines = [s.rstrip() for s in songsLines]
 		#This now assumes additional data has been collected from discogs
-		for i in range(0, min(len(songsLines)/6, 2)): 
+		for i in range(0, len(songsLines)/6): 
 			#filename, song.artist, song.album, song.title
 			i1 = i*6
 			filename = songsLines[i1]
