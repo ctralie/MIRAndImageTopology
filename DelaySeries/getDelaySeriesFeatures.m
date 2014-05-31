@@ -1,14 +1,16 @@
 %INPUTS
-%hopSize: hopSize to use with the STFT
-%skipSize: A number of samples equal to hopSize*skipSize in between delay
-%series samples
-%windowSize: The number of hopSizes to use for each delay series sample
+%hopSize: hopSize to use with the STFT (the number of samples in each STFT
+%window)
+%skipSize (integer): The program will use a number of samples equal to 
+%hopSize*skipSize in between delay series samples
+%windowSize (integer): The number of hopSizes to use for each delay series sample
 
 %RETURNS
 %DelaySeries: The delay series point cloud, with the points along the rows
 %and the features along the columns
 %Fs: Sampling Frequency
-%SampleDelays: Where each delay sample starts
+%SampleDelays: Where each delay sample starts (sample number in the sound
+%file)
 function [DelaySeries, Fs, SampleDelays] = getDelaySeriesFeatures( filename, hopSize, skipSize, windowSize )
     addpath('chroma-ansyn');
     addpath('rastamat');

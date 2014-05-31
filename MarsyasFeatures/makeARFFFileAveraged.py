@@ -88,7 +88,7 @@ if __name__ == '__main__':
 				os.remove(wavName)
 		dirNum = dirNum+1
 		#Save the matrix at intermediate steps
-		sio.savemat('', {'songsFeatures':songsFeatures, 'songsInfo':songsInfo, 'featureNames':attributes})
+		sio.savemat("songs_AllFeaturesAveraged.mat", {'songsFeatures':songsFeatures, 'songsInfo':songsInfo, 'featureNames':attributes})
 		songsIndex.close()
 	os.chdir('../../MarsyasFeatures')
-	sio.savemat('', {'songsFeatures':songsFeatures, 'songsInfo':songsInfo, 'featureNames':attributes})
+	sio.savemat("songs_AllFeaturesAveraged.mat", {'songsFeatures':songsFeatures, 'songsInfo':songsInfo, 'featureNames':attributes})
