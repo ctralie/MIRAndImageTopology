@@ -2,6 +2,7 @@ import subprocess
 import os
 import numpy as np
 import scipy.io as sio
+import pickle
 
 if __name__ == '__main__':
 	genreIndex = open('../MusicDownloader/Music/index.txt', 'r')
@@ -82,7 +83,7 @@ if __name__ == '__main__':
 				songsFeatures = featuresArray
 			else:
 				songsFeatures = np.concatenate([songsFeatures, featuresArray])
-			songsInfo.append({'filename':filename, 'artist':artist, 'album':album, 'title':title, 'year':int(year), 'genres':genres})
+			songsInfo.append({'filename':"%i/%s"%(dirNum, filename), 'artist':artist, 'album':album, 'title':title, 'year':int(year), 'genres':genres})
 			#Step 6: Remove the .wav file to free up space
 			if os.path.isfile(wavName):
 				os.remove(wavName)
@@ -91,4 +92,9 @@ if __name__ == '__main__':
 		sio.savemat("songs_AllFeaturesAveraged.mat", {'songsFeatures':songsFeatures, 'songsInfo':songsInfo, 'featureNames':attributes})
 		songsIndex.close()
 	os.chdir('../../MarsyasFeatures')
+	#Save a matlab version
 	sio.savemat("songs_AllFeaturesAveraged.mat", {'songsFeatures':songsFeatures, 'songsInfo':songsInfo, 'featureNames':attributes})
+	#Also save a pickled version so it's convenient for me to go back and look in Python
+	fout = open("songs_AllFeaturesAveraged.txt", 'w')
+	pickle.dump( (songsFeatures, songsInfo, attributes), fout)
+	fout.close()
