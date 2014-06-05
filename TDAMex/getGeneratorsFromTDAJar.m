@@ -1,5 +1,5 @@
 function [I1, J1, J1Generators, cycleDists] = getGeneratorsFromTDAJar(D, varargin)
-    javaclasspath('jars/tda.jar');
+    javaclasspath('../TDAMex/jars/tda.jar');
     import api.*;
     tda = Tda();
     
@@ -19,9 +19,9 @@ function [I1, J1, J1Generators, cycleDists] = getGeneratorsFromTDAJar(D, varargi
     
     fprintf(1, 'Executing John''s code...\n');
     if isempty(maxEdgeLength)
-        tda.RCA1( { 'settingsFile=data/cts.txt', 'supplyDataAs=distanceMatrix'}, D );
+        tda.RCA1( { 'settingsFile=../TDAMex/data/cts.txt', 'supplyDataAs=distanceMatrix'}, D );
     else
-        tda.RCA1( { 'settingsFile=data/cts.txt', 'supplyDataAs=distanceMatrix', ...
+        tda.RCA1( { 'settingsFile=../TDAMex/data/cts.txt', 'supplyDataAs=distanceMatrix', ...
             sprintf('distanceBoundOnEdges=%g', maxEdgeLength)}, D );
     end
     disp('Finished Persistent Homology');

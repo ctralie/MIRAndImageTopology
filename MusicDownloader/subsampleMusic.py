@@ -37,8 +37,7 @@ if __name__ == '__main__':
 			if not artist in songsByArtist:
 				songsByArtist[artist] = []
 			songsByArtist[artist].append(song)
-			if len(genres) == 1: #Only include songs in the count that have a unique genre
-				genre = genres[0]
+			for genre in genres:
 				if not genre in songsByGenre:
 					songsByGenre[genre] = []
 				songsByGenre[genre].append(song)
@@ -48,9 +47,12 @@ if __name__ == '__main__':
 	genreNames = [genre for genre in songsByGenre]
 	rects1 = ax.bar(range(len(songsByGenre)), counts)
 	#ax.set_xticklabels(genreNames)
+	total = 0
 	for i in range(len(genreNames)):
 		print "%s: %i"%(genreNames[i], counts[i])
+		total = total + counts[i]
 	#plt.show()
+	print "Total Songs: %i"%total
 	
 	#Randomly pick 450 Jazz songs
 	indexFile = open("Music/Jazz/index.txt", 'w')

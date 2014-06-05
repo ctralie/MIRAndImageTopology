@@ -1,4 +1,4 @@
-function [I, J, JGenerators] = doVideoHomology( filename )
+function [I, J, JGenerators, D] = doVideoHomology( filename )
     addpath('../ImageToolbox/channels');
     addpath('../TDAMex');
     obj = VideoReader(filename);
