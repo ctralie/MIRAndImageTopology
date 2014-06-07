@@ -1,9 +1,10 @@
 %INPUTS
 %hopSize: hopSize to use with the STFT (the number of samples in each STFT
-%window)
+%window, referred to as the "analysis window")
 %skipSize (integer): The program will use a number of samples equal to 
 %hopSize*skipSize in between delay series samples
 %windowSize (integer): The number of hopSizes to use for each delay series sample
+%(this is also referred to as the "texture window")
 
 %RETURNS
 %DelaySeries: The delay series point cloud, with the points along the rows
@@ -11,10 +12,17 @@
 %Fs: Sampling Frequency
 %SampleDelays: Where each delay sample starts (sample number in the sound
 %file)
-function [DelaySeries, Fs, SampleDelays] = getDelaySeriesFeatures( filename, hopSize, skipSize, windowSize )
+%FeatureNames: A cell array of strings that describe each feature
+function [DelaySeries, Fs, SampleDelays, FeatureNames] = getDelaySeriesFeatures( filename, hopSize, skipSize, windowSize )
     addpath('chroma-ansyn');
     addpath('rastamat');
     [X, Fs] = audioread(filename);
+    if nargin == 1
+    	%Default Parameters
+    	hopSize = round(2048*Fs/44100.0);
+    	skipSize = 1;
+    	windowSize = 10;
+    end    
     if size(X, 2) > 1
        %Merge to mono if there is more than one channel
        X = sum(X, 2)/size(X, 2); 
@@ -65,6 +73,30 @@ function [DelaySeries, Fs, SampleDelays] = getDelaySeriesFeatures( filename, hop
     disp('Calculating delay series....');
     %The last 1 is for low energy feature
     NFeatures = 2*(size(Centroid, 1) + size(Roloff, 1) + size(Flux, 1) + size(ZeroCrossings, 1) + size(MFCC, 1) + size(Chroma, 1)) + 1;
+    
+    %Save the string name of the features
+    FeatureNames = {};
+    FeatureNames{1} = 'Centroid'; FeatureNames{2} = 'Roloff'; FeatureNames{3} = 'Flux';
+    FeatureNames{4} = 'ZeroCrossings';
+    offset = length(FeatureNames);
+    for ii = 1:size(MFCC, 1)
+       FeatureNames{offset + ii} = sprintf('MFCC%i', ii); 
+    end
+    Notes = {'A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#'};
+    offset = length(FeatureNames);
+    for ii = 1:length(Notes)
+        FeatureNames{offset + ii} = sprintf('Chroma_%s', Notes{ii});
+    end
+    offset = length(FeatureNames);
+    for ii = 1:offset
+       OrigName = FeatureNames{ii};
+       FeatureNames{ii} = sprintf('MEAN%i_%s', windowSize, OrigName);
+       FeatureNames{offset + ii} = sprintf('STD%i_%s', windowSize, OrigName);
+    end
+    FeatureNames{length(FeatureNames)+1} = 'ZeroEnergy';
+    FeatureNames = FeatureNames';
+    
+    %Compute the mean and variance over each texture window 
     NDelays = length(1:hopSize*skipSize:length(X)-hopSize*windowSize-1);
     DelaySeries = zeros(NDelays, NFeatures);
     SampleDelays = zeros(NDelays, 1);
