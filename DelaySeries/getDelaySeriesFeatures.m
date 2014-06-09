@@ -5,6 +5,7 @@
 %hopSize*skipSize in between delay series samples
 %windowSize (integer): The number of hopSizes to use for each delay series sample
 %(this is also referred to as the "texture window")
+%NOTE: A windowSize of 1 skips using a texture window
 
 %RETURNS
 %DelaySeries: The delay series point cloud, with the points along the rows
@@ -21,7 +22,7 @@ function [DelaySeries, Fs, SampleDelays, FeatureNames] = getDelaySeriesFeatures(
     	%Default Parameters
     	hopSize = round(2048*Fs/44100.0);
     	skipSize = 1;
-    	windowSize = 10;
+    	windowSize = 1;%By default do not use a texture window
     end    
     if size(X, 2) > 1
        %Merge to mono if there is more than one channel
@@ -73,6 +74,11 @@ function [DelaySeries, Fs, SampleDelays, FeatureNames] = getDelaySeriesFeatures(
     disp('Calculating delay series....');
     %The last 1 is for low energy feature
     NFeatures = 2*(size(Centroid, 1) + size(Roloff, 1) + size(Flux, 1) + size(ZeroCrossings, 1) + size(MFCC, 1) + size(Chroma, 1)) + 1;
+    if windowSize == 1
+       %Exclude the mean/standard deviation and the low energy feature if
+       %the window size is 1
+       NFeatures = (NFeatures - 1)/2; 
+    end
     
     %Save the string name of the features
     FeatureNames = {};
@@ -87,13 +93,17 @@ function [DelaySeries, Fs, SampleDelays, FeatureNames] = getDelaySeriesFeatures(
     for ii = 1:length(Notes)
         FeatureNames{offset + ii} = sprintf('Chroma_%s', Notes{ii});
     end
-    offset = length(FeatureNames);
-    for ii = 1:offset
-       OrigName = FeatureNames{ii};
-       FeatureNames{ii} = sprintf('MEAN%i_%s', windowSize, OrigName);
-       FeatureNames{offset + ii} = sprintf('STD%i_%s', windowSize, OrigName);
+    if windowSize > 1
+        %Do the mean/variance and zero-energy feature if using a texture
+        %window
+        offset = length(FeatureNames);
+        for ii = 1:offset
+           OrigName = FeatureNames{ii};
+           FeatureNames{ii} = sprintf('MEAN%i_%s', windowSize, OrigName);
+           FeatureNames{offset + ii} = sprintf('STD%i_%s', windowSize, OrigName);
+        end
+        FeatureNames{length(FeatureNames)+1} = 'ZeroEnergy';
     end
-    FeatureNames{length(FeatureNames)+1} = 'ZeroEnergy';
     FeatureNames = FeatureNames';
     
     %Compute the mean and variance over each texture window 
@@ -106,15 +116,20 @@ function [DelaySeries, Fs, SampleDelays, FeatureNames] = getDelaySeriesFeatures(
         SampleDelays(off) = i1*hopSize;
         %Compute mean and standard deviation over the window of: Centroid, Roloff, Flux, ZeroCrossings, Chroma, MFCC
         StackedFeatures = [Centroid(:, i1:i2); Roloff(:, i1:i2); Flux(:, i1:i2); ZeroCrossings(:, i1:i2); MFCC(:, i1:i2); Chroma(:, i1:i2)];
-        MeanStacked = mean(StackedFeatures, 2);
-        STDStacked = sqrt(var(StackedFeatures, 1, 2));
-        %Compute the very last feature, which is the low-energy feature
-        SSubset = S(:, i1:i2);
-        SSubsetEnergy = sum(SSubset.*SSubset, 1);
-        ZeroEnergy = sum(SSubsetEnergy < mean(SSubsetEnergy));
-        DelaySeries(off, :) = [MeanStacked; STDStacked; ZeroEnergy];
+        if windowSize == 1
+            DelaySeries(off, :) = StackedFeatures;
+        else
+            MeanStacked = mean(StackedFeatures, 2);
+            STDStacked = sqrt(var(StackedFeatures, 1, 2));
+            %Compute the very last feature, which is the low-energy feature
+            SSubset = S(:, i1:i2);
+            SSubsetEnergy = sum(SSubset.*SSubset, 1);
+            ZeroEnergy = sum(SSubsetEnergy < mean(SSubsetEnergy));
+            DelaySeries(off, :) = [MeanStacked; STDStacked; ZeroEnergy];
+        end
         if mod(off, 100) == 0
            fprintf(1, 'Finished %i of %i\n', off, NDelays); 
         end
     end
+    DelaySeries = DelaySeries(:, 1:NFeatures);
 end
