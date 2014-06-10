@@ -17,7 +17,16 @@
 function [DelaySeries, Fs, SampleDelays, FeatureNames] = getDelaySeriesFeatures( filename, hopSize, skipSize, windowSize )
     addpath('chroma-ansyn');
     addpath('rastamat');
-    [X, Fs] = audioread(filename);
+    readSuccess = 0;
+    %Prevents the mandlebug where matlab's audio read randomly fails
+    while readSuccess == 0
+        try
+            [X, Fs] = audioread(filename);
+            readSuccess = 1;
+        catch
+            readSuccess = 0;
+        end
+    end
     if nargin == 1
     	%Default Parameters
     	hopSize = round(2048*Fs/44100.0);
