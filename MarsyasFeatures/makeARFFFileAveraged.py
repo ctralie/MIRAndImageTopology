@@ -59,12 +59,12 @@ if __name__ == '__main__':
 			
 			#Step 1: Extract .wav file
 			wavName = "%s.wav"%(filename.split(".m4a")[0])
-			filename = "%i/%s"%(dirNum, filename)
-			if not os.path.isfile(filename):
-				print "WARNING: %s not found"%filename
+			filepath = "%i/%s"%(dirNum, filename)
+			if not os.path.isfile(filepath):
+				print "WARNING: %s not found"%filepath
 				continue
 			wavName = "%i/%s"%(dirNum, wavName)
-			command = "avconv -i %s -ac 1 %s"%(filename, wavName)
+			command = "avconv -i %s -ac 1 %s"%(filepath, wavName)
 			print command
 			subprocess.call(["avconv", "-i", filename, "-ac", "1", wavName])
 			#Step 2: Create a collection file with this .wav file
@@ -90,7 +90,7 @@ if __name__ == '__main__':
 				songsFeatures = featuresArray
 			else:
 				songsFeatures = np.concatenate([songsFeatures, featuresArray])
-			songsInfo.append({'filename':"%s"%filename, 'artist':artist, 'album':album, 'title':title, 'year':int(year), 'genres':genresInt})
+			songsInfo.append({'filepath':"%s"%filepath, 'artist':artist, 'album':album, 'title':title, 'year':int(year), 'genres':genresInt})
 			#Step 6: Remove the .wav file to free up space
 			if os.path.isfile(wavName):
 				os.remove(wavName)
