@@ -32,7 +32,9 @@ if __name__ == '__main__':
 	dirNum = 0
 	songsFeatures = np.array([])
 	songsInfo = []
+	genreIndex = {}
 	for genre in genreNames:
+		print "Reading directory %i..."%dirNum
 		songsIndex = open("%i/index.txt"%dirNum, 'r')
 		songsLines = songsIndex.readlines()
 		songsLines = [s.rstrip() for s in songsLines]
@@ -49,6 +51,11 @@ if __name__ == '__main__':
 			genres = genres.split("[")[1]
 			genres = genres.split("]")[0]
 			genres = [g.lstrip().rstrip()[2:-1] for g in genres.split(",")]			
+			for genre in genres:
+				if not genre in genreIndex:
+					genreIndex[genre] = len(genreIndex)
+			genresInt = [genreIndex[genre]+1 for genre in genres]
+			genresInt = np.array(genresInt)
 			
 			#Step 1: Extract .wav file
 			wavName = "%s.wav"%(filename.split(".m4a")[0])
@@ -83,7 +90,7 @@ if __name__ == '__main__':
 				songsFeatures = featuresArray
 			else:
 				songsFeatures = np.concatenate([songsFeatures, featuresArray])
-			songsInfo.append({'filename':"%i/%s"%(dirNum, filename), 'artist':artist, 'album':album, 'title':title, 'year':int(year), 'genres':genres})
+			songsInfo.append({'filename':"%s"%filename, 'artist':artist, 'album':album, 'title':title, 'year':int(year), 'genres':genresInt})
 			#Step 6: Remove the .wav file to free up space
 			if os.path.isfile(wavName):
 				os.remove(wavName)
@@ -93,8 +100,11 @@ if __name__ == '__main__':
 		songsIndex.close()
 	os.chdir('../../MarsyasFeatures')
 	#Save a matlab version
-	sio.savemat("songs_AllFeaturesAveraged.mat", {'songsFeatures':songsFeatures, 'songsInfo':songsInfo, 'featureNames':attributes})
+	genreStrings = [0]*len(genreIndex)
+	for genre in genreIndex:
+		genreStrings[genreIndex[genre]] = genre
+	sio.savemat("songs_AllFeaturesAveraged.mat", {'songsFeatures':songsFeatures, 'songsInfo':songsInfo, 'featureNames':attributes, 'genreStrings':genreStrings})
 	#Also save a pickled version so it's convenient for me to go back and look in Python
 	fout = open("songs_AllFeaturesAveraged.txt", 'w')
-	pickle.dump( (songsFeatures, songsInfo, attributes), fout)
+	pickle.dump( (songsFeatures, songsInfo, attributes, genreStrings), fout)
 	fout.close()
