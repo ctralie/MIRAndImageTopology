@@ -63,13 +63,13 @@ if __name__ == '__main__':
 			if not os.path.isfile(filepath):
 				print "WARNING: %s not found"%filepath
 				continue
-			wavName = "%i/%s"%(dirNum, wavName)
-			command = "avconv -i %s -ac 1 %s"%(filepath, wavName)
+			wavpath = "%i/%s"%(dirNum, wavName)
+			command = "avconv -i %s -ac 1 %s"%(filepath, wavpath)
 			print command
-			subprocess.call(["avconv", "-i", filename, "-ac", "1", wavName])
+			subprocess.call(["avconv", "-i", filepath, "-ac", "1", wavpath])
 			#Step 2: Create a collection file with this .wav file
 			mfhandle = open('temp.mf', 'w')
-			mfhandle.write(wavName)
+			mfhandle.write(wavpath)
 			mfhandle.close()
 			#Step 3: call bextract to extract the features
 			# https://github.com/marsyas/marsyas/blob/master/src/apps/bextract/bextract.cpp
