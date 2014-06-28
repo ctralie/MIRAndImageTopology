@@ -1,7 +1,10 @@
-function [] = saveVideoGenerators( filename, J, JGenerators, NGenerators, D )
+function [] = saveVideoGenerators( filename, J, JGenerators, NGenerators, D, tolerance )
     addpath('../TDAMex');
-    [JOut, JGeneratorsOut] = getContinuousGenerators(J, JGenerators, 2);
-    fprintf(1, 'There are %i continuous generators\n', length(JGenerators));
+    if nargin < 6
+       tolerance = 2; 
+    end
+    [JOut, JGeneratorsOut] = getContinuousGenerators(J, JGenerators, tolerance);
+    fprintf(1, 'There are %i continuous generators\n', length(JGeneratorsOut));
     lengths = zeros(1, length(JGeneratorsOut));
     for ii = 1:length(lengths)
        lengths(ii) = length(JGeneratorsOut{ii}); 
@@ -16,12 +19,27 @@ function [] = saveVideoGenerators( filename, J, JGenerators, NGenerators, D )
         open(writerObj);
         Generator = JGeneratorsOut{genOrder(ii)};
         for jj = 1:length(Generator)
-           frame = read(videoReader, Generator(jj));
+           thisFrame = Generator(jj);
+           %Plot the frame position up top
+           frameim = zeros(20, size(D, 1));
+           frameim(:, Generator) = 1;
+           frameim(:, max(thisFrame-2, 1):min(thisFrame+2, end)) = 2;
+           subplot(20, 20, [1:20]);
+           imagesc(frameim);
+           title(sprintf('Cycle %i Frame %i', ii, thisFrame));
+           axis equal;
+           
+           %Now plot the frame next to the MDS projected position
+           frame = read(videoReader, thisFrame);
            writeVideo(writerObj, frame);
-           subplot(1, 2, 1);
+           x = 21:400;
+           x = x(mod(ceil(x/10), 2) == 0);
+           subplot(20, 20, x);
            imagesc(frame);
            axis equal;axis square;
-           subplot(1, 2, 2);
+           x = 21:400;
+           x = x(mod(ceil(x/10), 2) == 1);
+           subplot(20, 20, x);
            Y = cmdscale(D(Generator, Generator));
            scatter(Y(:, 1), Y(:, 2), 50, 'b', 'fill');
            hold on;
