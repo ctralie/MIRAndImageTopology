@@ -4,7 +4,7 @@ function [I, J, JGenerators] = doHomology( filename,  hopSize, skipSize, windowS
     fprintf(1, 'Finished computing delay series with %i samples\n', length(SampleDelays));
     
     maxEdgeLength = 20;
-    maxTime = 10;
+    maxTime = 60;
     %Only look at the first 10 seconds
     SampleDelays = SampleDelays / Fs;
     lastIdx = sum(SampleDelays < maxTime)
@@ -32,11 +32,28 @@ function [I, J, JGenerators] = doHomology( filename,  hopSize, skipSize, windowS
     %[~, genOrder] = sort(J(:, 2), 'descend');%Sort the points in decreasing order of death time
     dimx = 5;
     figure;
-    for i = 1:dimx*dimx
-       subplot(dimx, dimx, i);
-       plot(SampleDelays(JGenerators{genOrder(i)}));
+    %Plot the seconds where different samples occur, and save audio files
+    [Y, Fs] = audioread(filename);
+    if size(Y, 2) > 1
+       %Merge to mono if there is more than one channel
+       Y = sum(Y, 2)/size(Y, 2); 
+    end
+    for ii = 1:dimx*dimx
+       %Make the plot
+       subplot(dimx, dimx, ii);
+       thisGenerator = JGenerators{genOrder(ii)};
+       plot(SampleDelays(thisGenerator));
        xlabel('Sample Number');
        ylabel('Seconds');
-       title( sprintf('%g', J(genOrder(i), 2) - J(genOrder(i), 1)) );
+       title( sprintf('%g', J(genOrder(ii), 2) - J(genOrder(ii), 1)) );
+       %Save audio files
+       mask = zeros(size(Y));
+       for jj = 1:length(thisGenerator)
+           i1 = 1 + (thisGenerator(jj)-1)*hopSize*skipSize;
+           i2 = i1 + hopSize*windowSize - 1;
+           mask(i1:i2) = 1;
+       end
+       X = Y(mask == 1);
+       audiowrite(sprintf('%i.ogg', ii), X, Fs);
     end
 end
