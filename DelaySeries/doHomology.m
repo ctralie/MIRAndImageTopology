@@ -1,13 +1,15 @@
-function [I, J, JGenerators] = doHomology( filename,  hopSize, skipSize, windowSize )
+%timeReg: A variable that controls "time regularization"; or the scale of
+%an extra dimension which indicates where a delay series sample is in time
+function [I, J, JGenerators] = doHomology( filename,  hopSize, skipSize, windowSize, timeReg )
     addpath('../TDAMex');
     [DelaySeries, Fs, SampleDelays] = getDelaySeriesFeatures( filename, hopSize, skipSize, windowSize );
+    SampleDelays = SampleDelays / Fs;
     fprintf(1, 'Finished computing delay series with %i samples\n', length(SampleDelays));
     
-    maxEdgeLength = 20;
     maxTime = 60;
     %Only look at the first 10 seconds
-    SampleDelays = SampleDelays / Fs;
-    lastIdx = sum(SampleDelays < maxTime)
+    
+    lastIdx = length(SampleDelays);%sum(SampleDelays < maxTime)
     DelaySeries = DelaySeries(1:lastIdx, :);
     SampleDelays = SampleDelays(1:lastIdx, :);
     
@@ -15,12 +17,18 @@ function [I, J, JGenerators] = doHomology( filename,  hopSize, skipSize, windowS
     minData = min(DelaySeries);
     DelaySeries = bsxfun(@minus, DelaySeries, minData);
     maxData = max(DelaySeries);
-    DelaySeries = bsxfun(@times, DelaySeries, 1./(maxData+eps));    
+    DelaySeries = bsxfun(@times, DelaySeries, 1./(maxData+eps));
+    
+    %Add the extra time dimension
+    DelaySeries = [DelaySeries timeReg*SampleDelays(:)];
+    size(DelaySeries)
+    
     %Calculate the distance matrix
     disp('Calculating distance matrix...');
     D = squareform(pdist(DelaySeries));
     minDist = min(D(:));
     maxDist = max(D(:));
+    maxEdgeLength = 0.5*maxDist;
     disp('Finished calculating distance matrix');
     disp('Beginning to get persistence points and generators...');
     [I, J, JGenerators] = getGeneratorsFromTDAJar(D, maxEdgeLength);
@@ -47,6 +55,24 @@ function [I, J, JGenerators] = doHomology( filename,  hopSize, skipSize, windowS
        ylabel('Seconds');
        title( sprintf('%g', J(genOrder(ii), 2) - J(genOrder(ii), 1)) );
        %Save audio files
+       X = [];
+       for jj = 1:length(thisGenerator)
+           i1 = 1 + (thisGenerator(jj)-1)*hopSize*skipSize;
+           i2 = i1 + hopSize*windowSize - 1;
+           X = [X; Y(i1:i2)];
+       end
+       audiowrite(sprintf('%i.ogg', ii), X, Fs);
+    end
+    figure;
+    for ii = 1:dimx*dimx
+       %Make the plot
+       subplot(dimx, dimx, ii);
+       thisGenerator = JGenerators{genOrder(ii)};
+       plot(SampleDelays(sort(thisGenerator)));
+       xlabel('Sample Number');
+       ylabel('Seconds');
+       title( sprintf('%g', J(genOrder(ii), 2) - J(genOrder(ii), 1)) );
+       %Save audio files
        mask = zeros(size(Y));
        for jj = 1:length(thisGenerator)
            i1 = 1 + (thisGenerator(jj)-1)*hopSize*skipSize;
@@ -54,6 +80,6 @@ function [I, J, JGenerators] = doHomology( filename,  hopSize, skipSize, windowS
            mask(i1:i2) = 1;
        end
        X = Y(mask == 1);
-       audiowrite(sprintf('%i.ogg', ii), X, Fs);
+       audiowrite(sprintf('%iSorted.ogg', ii), X, Fs);
     end
 end
