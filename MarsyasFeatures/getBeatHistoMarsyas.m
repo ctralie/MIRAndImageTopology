@@ -1,10 +1,19 @@
-function [X, featureNames] = getDelaySeriesMarsyas( y, Fs, windowSize, hopSize )
+function [X, featureNames] = getBestHistoMarsyas( filename )
 %Inputs: y: signal, Fs: Sample rate
+    fprintf(1, 'Loading and converting %s...\n', filename);
+    [y, Fs] = audioread(filename);
     wavwrite(y, Fs, 'temp.wav');
     fmf = fopen('temp.mf', 'w');
     fwrite(fmf, 'temp.wav');
     fclose(fmf);
-    system(sprintf('bextract temp.mf -w temp.arff -fe -mfcc -zcrs -ctd -rlf -flx -chroma -ws %i -hp %i -m 1', windowSize, hopSize));
+    fprintf(1, 'Finished loading and converting %s\n', filename);
+
+    %Default Parameters
+    hopSize = round(2048*Fs/44100.0);
+    skipSize = 1;
+    windowSize = 1;%By default do not use a texture window  
+    
+    system(sprintf('bextract temp.mf -w temp.arff -sv -bf -ws %i -hp %i -m %i', hopSize, skipSize, windowSize));
     
     %Now parse the ARFF file to get the features
     READING_ATTRIBUTES = 1;
@@ -27,11 +36,14 @@ function [X, featureNames] = getDelaySeriesMarsyas( y, Fs, windowSize, hopSize )
                 state = READING_DATA;
             end
         elseif state == READING_DATA
-            line = strsplit(line, ',');
-            line = cell2mat(line);
-            nextLine = str2mat(line);
-            X = [X nextLine(:)];
+            lineSplit = strsplit(line, ',');
+            lineSplit = lineSplit(1:end-1);
+            lineSplit = str2num(str2mat(lineSplit));
+            X = [X lineSplit(:)];
         end
         line = fgets(farff);
     end
+    featureNames = reshape(featureNames, [length(featureNames), 1]);
+    featureNames = featureNames(125:142);%Pull out beat histogram features
+    X = X(125:142, 1);
 end
