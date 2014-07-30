@@ -41,7 +41,7 @@ function [] = makeSynchronizedMDSVideos(filename, hopSize, textureWindow, outnam
     
 
     
-    system(sprintf('avconv -r %g -i syncmovie%s.png -i syncmoviesound.wav -b 65536k -r %24 %s', FramesPerSecond, '%d', FramesPerSecond, outname));
+    system(sprintf('avconv -r %g -i syncmovie%s.png -i syncmoviesound.wav -b 65536k -r 24 %s', FramesPerSecond, '%d', outname));
     system('rm syncmovie*.png');
 
 %     if PLOTEDGES
