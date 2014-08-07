@@ -1,4 +1,4 @@
-function [] = makeSynchronizedMDSVideos(filename, hopSize, textureWindow, outname)
+function [] = makeSynchronizedMDSVideos(filename, hopSize, textureWindow, outname, plot3D)
     [DelaySeries, Fs, SampleDelays, FeatureNames] = ...
         getDelaySeriesFeatures(filename, hopSize, 1, textureWindow);
     DelaySeries = DelaySeries(:, [1:9 18:38 47:end]);%Only use MFCC 1-5
@@ -19,11 +19,17 @@ function [] = makeSynchronizedMDSVideos(filename, hopSize, textureWindow, outnam
     
     figure(1);
     for ii = 1:N
-        scatter3(Y(ii, 1), Y(ii, 2), Y(ii, 3), 20, Colors(ii, :));
+        if plot3D == 1
+            scatter3(Y(1:ii, 1), Y(1:ii, 2), Y(1:ii, 3), 20, Colors(1:ii, :));
+        else
+            scatter(Y(1:ii, 1), Y(1:ii, 2), 20, Colors(1:ii, :));
+        end
         xlim([min(Y(:, 1)), max(Y(:, 1))]);
         ylim([min(Y(:, 2)), max(Y(:, 2))]);
-        zlim([min(Y(:, 3)), max(Y(:, 3))]);
-        view(mod(ii/2, 360));
+        if plot3D == 1
+            zlim([min(Y(:, 3)), max(Y(:, 3))]);
+            view(mod(ii/2, 360), 0);
+        end
         print('-dpng', '-r100', sprintf('syncmovie%i.png', ii));
     end
     
@@ -35,7 +41,7 @@ function [] = makeSynchronizedMDSVideos(filename, hopSize, textureWindow, outnam
     
 
     
-    system(sprintf('avconv -r %g -i syncmovie%s.png -i syncmoviesound.wav -b 65536k -r %24 %s', FramesPerSecond, '%d', FramesPerSecond, outname));
+    system(sprintf('avconv -r %g -i syncmovie%s.png -i syncmoviesound.wav -b 65536k -r 24 %s', FramesPerSecond, '%d', outname));
     system('rm syncmovie*.png');
 
 %     if PLOTEDGES
