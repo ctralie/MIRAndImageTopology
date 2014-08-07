@@ -18,12 +18,12 @@ function [] = makeSynchronizedMDSVideos(filename, hopSize, textureWindow, outnam
     FramesPerSecond = N/TotalSeconds
     
     figure(1);
-    hold on;
-    xlim([min(Y(:, 1)), max(Y(:, 1))]);
-    ylim([min(Y(:, 2)), max(Y(:, 2))]);
-    counter = 1;
     for ii = 1:N
-        scatter(Y(ii, 1), Y(ii, 2), 20, Colors(ii, :));
+        scatter3(Y(ii, 1), Y(ii, 2), Y(ii, 3), 20, Colors(ii, :));
+        xlim([min(Y(:, 1)), max(Y(:, 1))]);
+        ylim([min(Y(:, 2)), max(Y(:, 2))]);
+        zlim([min(Y(:, 3)), max(Y(:, 3))]);
+        view(mod(ii/2, 360));
         print('-dpng', '-r100', sprintf('syncmovie%i.png', ii));
     end
     
