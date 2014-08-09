@@ -15,8 +15,8 @@ function [] = getGTzanFeatures(indices)
     featuresMin = [];
     featuresMax = [];
 
-    for ii = 1:indices
-       genre = genres{ii};
+    for ii = 1:length(indices)
+       genre = genres{indices(ii)};
        fprintf(1, 'Doing %s...\n', genre);
        X = [];
        XTDA = [];
@@ -47,6 +47,6 @@ function [] = getGTzanFeatures(indices)
        end
        featuresOrig{ii} = X;
        featuresTDA{ii} = XTDA;
-       save(sprintf('GTzanFeatures%i.mat', ii), 'featuresOrig', 'featuresTDA', 'genres', 'featureNames');
+       save(sprintf('GTzanFeatures%i.mat', indices(ii)), 'featuresOrig', 'featuresTDA', 'genres', 'featureNames');
     end
 end
