@@ -2,7 +2,6 @@ function [ XPD1Bars ] = getPD1Sorted( X )
     javaclasspath('../TDAMex/jars/tda.jar');
     import api.*;
     tda = Tda();
-    %TODO: Leakage with computing principal components?
     D = squareform(pdist(X));
     maxEdgeLength = max(D(:));
     tda.RCA1( { 'settingsFile=../TDAMex/data/cts.txt', 'supplyDataAs=distanceMatrix', ...
