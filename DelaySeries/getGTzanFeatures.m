@@ -40,7 +40,7 @@ function [] = getGTzanFeatures(indices)
            thisXTDAMFCC = getPD1Sorted(DelaySeries(:, MFCCIndices));
            thisXTDAChroma = getPD1Sorted(DelaySeries(:, ChromaIndices));
            if (isempty(XTDA))
-              XTDA = zeros(100, length(thisXTDA)*3); 
+              XTDA = zeros(100, length(thisXTDATimbre)*3); 
            end
            XTDA(jj, :) = [thisXTDATimbre thisXTDAMFCC thisXTDAChroma];
            fprintf(1, 'Finished %s %i\n', genre, jj);
