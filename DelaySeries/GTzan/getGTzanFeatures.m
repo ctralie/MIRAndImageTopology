@@ -1,4 +1,10 @@
+%Programmer: Chris Tralie
+%Purpose: To extract the CAF and persistence features from the George
+%Tzanetakis 2002 dataset
+%indices: The indices of the genres to compute (Useful to run this file
+%on different cores with different indices to parallelize computation)
 function [] = getGTzanFeatures(indices)
+    addpath('..');
     addpath('genres');
     genres = {'blues', 'classical', 'country', 'disco', 'hiphop', 'jazz', 'metal', 'pop', 'reggae', 'rock'};
     hopSize = 512;
@@ -36,6 +42,7 @@ function [] = getGTzanFeatures(indices)
            end
            DelaySeries = bsxfun(@minus, DelaySeries, featuresMin);
            DelaySeries = bsxfun(@times, DelaySeries, 1./((featuresMax - featuresMin)+eps));
+           %Do DGM1 separately for timbre, MFCC, and chroma
            thisXTDATimbre = getPD1Sorted(DelaySeries(:, timbreIndices));
            thisXTDAMFCC = getPD1Sorted(DelaySeries(:, MFCCIndices));
            thisXTDAChroma = getPD1Sorted(DelaySeries(:, ChromaIndices));

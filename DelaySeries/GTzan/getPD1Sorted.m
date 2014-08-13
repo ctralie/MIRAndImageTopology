@@ -1,5 +1,10 @@
+%Programmer: Chris Tralie
+%Purpose: To compute the persistence diagrams of the point cloud contained
+%in X, where each row is a point and the columns are the dimensions
+%Zero pads up to 100 persistence points
+%Returns: XPD1Bars: [Birth Times, Life Times]
 function [ XPD1Bars ] = getPD1Sorted( X )
-    javaclasspath('../TDAMex/jars/tda.jar');
+    javaclasspath('../../TDAMex/jars/tda.jar');
     import api.*;
     tda = Tda();
     D = squareform(pdist(X));

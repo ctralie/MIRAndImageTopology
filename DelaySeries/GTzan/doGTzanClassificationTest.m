@@ -1,7 +1,15 @@
+%Programmer: Chris Tralie
+%Purpose: To perform a 10-fold cross-validation test on the GTzan data
+%That is, randomly shuffle, then take 10 segments of 90% training 10% test
+
+%Inputs:
 %genresToUse: Indexes corresponding to the genres to use in this test
 %NPrC: Number of principal components to use for the TDA features
 %NNeighb: Number of neighbors to use in nearest neighbor classification
 %useTDA: Whether or not to use the TDA features
+
+%Returns:
+%Confusion: The confusion matrix
 function [Confusion] = doGTzanClassificationTest(genresToUse, NPrC, NNeighb, useTDA)
     load('GTzanFeatures');
     fOrig = cell2mat(featuresOrig');
@@ -51,14 +59,21 @@ function [Confusion] = doGTzanClassificationTest(genresToUse, NPrC, NNeighb, use
 
         %Step 3: Do PCA on the TDA features for the training set and apply
         %those principal components to the testing and training set
-        PCATDA = pca(fTDATrain);
-        PCATDA = PCATDA(:, 1:NPrC);
-        %Center the features on their centroids
-        fTDATrain = fTDATrain - repmat(mean(fTDATrain, 1), [size(fTDATrain, 1), 1]);
-        fTDATest = fTDATest - repmat(mean(fTDATest, 1), [size(fTDATest, 1), 1]);
-        %Project onto principal components
-        trainTDAProj = (PCATDA'*fTDATrain')';
-        testTDAProj = (PCATDA'*fTDATest')';
+        trainTDAProj = [];
+        testTDAProj = [];
+        for kk = 0:2
+            indices = 1:200 + kk*200;
+            thisfTDATrain = fTDATrain(:, indices);
+            thisfTDATest = fTDATest(:, indices);
+            PCATDA = pca(thisfTDATrain);
+            PCATDA = PCATDA(:, 1:NPrC);
+            %Center the features on their centroids
+            thisfTDATrain = thisfTDATrain - repmat(mean(thisfTDATrain, 1), [size(thisfTDATrain, 1), 1]);
+            thisfTDATest = thisfTDATest - repmat(mean(thisfTDATest, 1), [size(thisfTDATest, 1), 1]);
+            %Project onto principal components
+            trainTDAProj = [trainTDAProj (PCATDA'*thisfTDATrain')'];
+            testTDAProj = [testTDAProj (PCATDA'*thisfTDATest')'];
+        end
 
         %Step 4: Scale the PCA TDA features so they lie in the range [0, 1]
         minOrig = min(trainTDAProj);
