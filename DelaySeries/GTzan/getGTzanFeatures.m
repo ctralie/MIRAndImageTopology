@@ -59,7 +59,7 @@ function [] = getGTzanFeatures(indices, subsample)
            end
            XTDA(jj, :) = [thisXTDATimbre thisXTDAMFCC thisXTDAChroma];
            fprintf(1, 'Finished %s %i\n', genre, jj);
-           PDs(end+1) = {timbrePD, MFCCPD, ChromaPD};
+           PDs{end+1} = {timbrePD, MFCCPD, ChromaPD};
        end
        featuresOrig{ii} = X;
        featuresTDA{ii} = XTDA;
