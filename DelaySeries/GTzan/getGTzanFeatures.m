@@ -64,6 +64,6 @@ function [] = getGTzanFeatures(indices, subsample)
        featuresOrig{ii} = X;
        featuresTDA{ii} = XTDA;
        AllPDs{ii} = PDs;
-       save(sprintf('GTzanFeatures%i.mat', indices(ii)), 'featuresOrig', 'featuresTDA', 'AllPDs', 'genres', 'FeatureNames');
+       save(sprintf('GTzanFeatures%i.mat', indices(ii)), 'featuresOrig', 'featuresTDA', 'PDs', 'genres', 'FeatureNames');
     end
 end
