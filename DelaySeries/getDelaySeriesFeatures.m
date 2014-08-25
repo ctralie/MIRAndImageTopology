@@ -51,9 +51,9 @@ function [DelaySeries, Fs, SampleDelays, FeatureNames] = getDelaySeriesFeatures(
     
     %Spectral Roloff
     Roloff = cumsum(S, 1)./repmat(sum(S, 1) + eps, NSpectrumSamples, 1);
-    Roloff(Roloff > 0.85) = 100;
-    Roloff(Roloff <= 0.85) = 0;
-    Roloff = sum(Roloff) / 100.0;
+    Roloff(Roloff > 0.85) = 0;
+    Roloff(Roloff <= 0.85) = 1;
+    Roloff = sum(Roloff);
     
     %Spectral Flux
     S2 = [zeros(NSpectrumSamples, 1) S(:, 1:end-1)];
@@ -115,6 +115,13 @@ function [DelaySeries, Fs, SampleDelays, FeatureNames] = getDelaySeriesFeatures(
     end
     FeatureNames = FeatureNames';
     
+    %Compute the RMSE for every analysis window (used for zero-energy)
+    AnalysisRMSE = zeros(1, NAWindows);
+    for ii = 1:NAWindows
+        thisX = X((1:hopSize) + (ii-1)*hopSize);
+        AnalysisRMSE(ii) = sqrt(sum(thisX.*thisX)/hopSize);
+    end
+    
     %Compute the mean and variance over each texture window 
     NDelays = length(1:hopSize*skipSize:length(X)-hopSize*windowSize-1);
     DelaySeries = zeros(NDelays, NFeatures);
@@ -131,9 +138,9 @@ function [DelaySeries, Fs, SampleDelays, FeatureNames] = getDelaySeriesFeatures(
             MeanStacked = mean(StackedFeatures, 2);
             STDStacked = sqrt(var(StackedFeatures, 1, 2));
             %Compute the very last feature, which is the low-energy feature
-            SSubset = S(:, i1:i2);
-            SSubsetEnergy = sum(SSubset.*SSubset, 1);
-            ZeroEnergy = sum(SSubsetEnergy < mean(SSubsetEnergy));
+            XTexture = X((1:windowSize*hopSize) + (i1-1)*hopSize);
+            TextureRMSE = sqrt(sum(XTexture.*XTexture/((i2-i1)*hopSize)));
+            ZeroEnergy = sum(AnalysisRMSE(i1:i2) < TextureRMSE);
             DelaySeries(off, :) = [MeanStacked; STDStacked; ZeroEnergy];
         end
         if mod(off, 100) == 0

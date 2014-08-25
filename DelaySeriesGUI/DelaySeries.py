@@ -3,6 +3,7 @@ import numpy.linalg as linalg
 from scipy.io import wavfile
 from scipy.io import savemat
 from scipy.fftpack import dct
+import matplotlib.pyplot as plt
 
 #MFCC CONSTANTS
 MEL_NBANDS = 40
@@ -39,6 +40,9 @@ def STFTChromaOverlap(X, hopSize):
 	S = np.array([ np.fft.fft(ham*Y[i:i+windowLen]) for i in range(0, len(Y) - windowLen, hopSize)  ])
 	return S.T
 
+def getRMSE(x):
+	return np.sqrt(np.sum(np.abs(x*x))/float(len(x)))
+
 #function [DelaySeries, Fs, SampleDelays, FeatureNames] = getDelaySeriesFeatures( filename, hopSize, skipSize, windowSize )
 class DelaySeries(object):
 	def __init__(self):
@@ -61,7 +65,7 @@ class DelaySeries(object):
 			X = X.sum(1)
 		X = X.flatten()
 		#Data is not normalized when read in.  Assume 16 bit
-		X = X/2.0**15
+		X = X/(2.0**15)
 
 		#Compute spectrogram
 		S = STFTNoOverlapZeropad(X, hopSize) #Spectrogram
@@ -74,8 +78,6 @@ class DelaySeries(object):
 		######################################################
 		#####            TIMBRAL FEATURES           ##########
 		######################################################
-		#TODO: Made a mistake in matlab doing these features on the whole 
-		#symmetric spectrum intstead of only half of it
 		#Spectral Centroid
 		MulMat = np.tile(1 + np.arange(NSpectrumSamples), (NAWindows, 1))
 		MulMat = MulMat.T
@@ -83,7 +85,6 @@ class DelaySeries(object):
 		Centroid = Centroid.reshape((1, len(Centroid)))
 		
 		#Spectral Roloff
-		#TODO: I think I made a mistake in the matlab code taking 1 - the roloff
 		EPS = 1e-14
 		Roloff = np.cumsum(SHalf, 0) / np.tile(np.sum(SHalf, 0) + EPS, (NSpectrumSamples, 1))
 		Roloff[Roloff > 0.85] = 1.0
@@ -201,6 +202,9 @@ class DelaySeries(object):
 			ChromaIdx = np.append(ChromaIdx, ChromaIdx + NFeatures)
 			NFeatures = NFeatures*2 + 1
 		
+		#Compute the RMSE of each analysis window in the time domain
+		AnalysisWinRMSE = np.array([getRMSE(X[i*hopSize:(i+1)*hopSize]) for i in range(NAWindows)])
+		
 		#Compute the mean and variance over each texture window
 		NDelays = len(range(0, len(X)-hopSize*windowSize-1, hopSize*skipSize))
 		DelaySeries = np.zeros((NDelays, NFeatures))
@@ -209,7 +213,7 @@ class DelaySeries(object):
 			i1 = off*skipSize
 			i2 = i1 + windowSize
 			SampleDelays[off] = i1*hopSize
-			#Compute mean and standard deviatio over the window of: Centroid, Roloff,
+			#Compute mean and standard deviation over the window of: Centroid, Roloff,
 			#Flux, ZeroCrossings, MFCC
 			StackedFeatures = np.concatenate((Centroid[:, i1:i2], Roloff[:, i1:i2], Flux[:, i1:i2], ZeroCrossings[:, i1:i2], MFCC[:, i1:i2], Chroma[:, i1:i2]), 0)
 			if windowSize == 1:
@@ -218,10 +222,8 @@ class DelaySeries(object):
 				MeanStacked = np.mean(StackedFeatures, 1)
 				STDStacked = np.sqrt(np.var(StackedFeatures, 1))
 				#Compute the very last feature, which is the low-energy feature
-				#TODO: I made a mistake on this feature in my matlab code (check the definition)
-				SSubset = S[:, i1*hopSize:i2*hopSize]
-				SSubsetEnergy = np.sum(SSubset*SSubset, 0)
-				ZeroEnergy = np.array([sum(SSubsetEnergy < np.mean(SSubsetEnergy))])
+				TextureWinRMSE = getRMSE(X[hopSize*i1:hopSize*i2])
+				ZeroEnergy = np.array([sum(AnalysisWinRMSE[i1:i2] < TextureWinRMSE)])
 				DelaySeries[off, :] = np.concatenate((MeanStacked, STDStacked, ZeroEnergy))
 		SampleDelays = SampleDelays/Fs
 		return X, DelaySeries, Fs, SampleDelays, TimbreIdx, MFCCIdx, ChromaIdx
