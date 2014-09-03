@@ -26,11 +26,21 @@ function [] = getGTzanFeatures(indices, subsample, foldername)
     MFCCIndices = [5:9 34:38];
     ChromaIndices = [18:29 47:58];
 
-    %Used for scaling before applying TDA (scale by the range of the first
-    %song)
-    featuresMin = [];
-    featuresMax = [];
-
+%     %Used for scaling before applying TDA
+%     %(these are eyeballed scalings based on looking across all songs)
+%     featuresMin = zeros(1, 59);
+%     featuresMin(5:17) = -1;%Only some of the MFCCs can go negative
+%     featuresMax = zeros(1, 59);
+%     featuresMax([1 30]) = 150;
+%     featuresMax([2 31]) = 257;
+%     featuresMax([3 32]) = 0.1;
+%     featuresMax([4 33]) = 257;
+%     featuresMax(ChromaIndices) = 1;
+%     featuresMax(MFCCIndices) = 0.5;
+%     featuresMax(5) = 5;
+%     featuresMax(34) = 2.5;
+%     featuresMax(end) = 40;
+    
     for ii = 1:length(indices)
        genre = genres{indices(ii)};
        fprintf(1, 'Doing %s...\n', genre);
@@ -47,11 +57,10 @@ function [] = getGTzanFeatures(indices, subsample, foldername)
               X = zeros(jj, length(thisX)); 
            end
            X(jj, :) = thisX;
-           %Now scale the delay series and compute the DGM1 features
-           if isempty(featuresMin)
-               featuresMin = min(DelaySeries, [], 1);
-               featuresMax = max(DelaySeries, [], 1);
-           end
+           %Now scale the delay series and compute the DGM0/DGM1 features
+           %Scale each song individually
+           featuresMin = min(DelaySeries, [], 1);
+           featuresMax = max(DelaySeries, [], 1);
            DelaySeries = bsxfun(@minus, DelaySeries, featuresMin);
            DelaySeries = bsxfun(@times, DelaySeries, 1./((featuresMax - featuresMin)+eps));
            %Do DGM1 separately for timbre, MFCC, and chroma
