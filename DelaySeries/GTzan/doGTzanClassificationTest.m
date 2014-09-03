@@ -6,7 +6,7 @@
 %genresToUse: Indexes corresponding to the genres to use in this test
 %NPrC: Number of principal components to use for the TDA features
 %NNeighb: Number of neighbors to use in nearest neighbor classification
-%useTDA: Whether or not to use the TDA features
+%useTDA: 0: Features by themselves, 1: TDA Features only, 2: Both
 
 %Returns:
 %Confusion: The confusion matrix
@@ -88,8 +88,11 @@ function [Confusion] = doGTzanClassificationTest(genresToUse, NPrC, NNeighb, use
         XTrain = fOrigTrain;
         XTest = fOrigTest;
         if useTDA == 1
-            XTrain = [XTrain trainTDAProj];
-            XTest = [XTest testTDAProj];
+            XTrain=  trainTDAProj;
+            XTest = testTDAProj;
+        elseif useTDA == 2
+            XTrain = [fOrigTrain trainTDAProj];
+            XTest = [fOrigTest testTDAProj];
         end
         D = squareform(pdist([XTest; XTrain]));
         D = D(1:size(XTest, 1), size(XTest, 1)+1:end);

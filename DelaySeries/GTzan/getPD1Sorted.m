@@ -3,7 +3,7 @@
 %in X, where each row is a point and the columns are the dimensions
 %Zero pads up to 100 persistence points
 %Returns: XPD1Bars: [Birth Times, Life Times]
-function [ XPD1Bars, JOrig ] = getPD1Sorted( X )
+function [ XPD1Bars, JOrig, IOrig ] = getPD1Sorted( X )
     javaclasspath('jars/tda.jar');
     import api.*;
     tda = Tda();
@@ -13,7 +13,9 @@ function [ XPD1Bars, JOrig ] = getPD1Sorted( X )
     	sprintf('distanceBoundOnEdges=%g', maxEdgeLength)}, D );
     disp('Finished Persistent Homology');
     J = tda.getResultsRCA1(1).getIntervals();
+    I = tda.getResultsRCA1(0).getIntervals();
     JOrig = J;
+    IOrig = I;
     [~, idx] = sort(J(:, 2) - J(:, 2));
     J = J(idx, :);
     if size(J, 1) < 100
@@ -22,4 +24,3 @@ function [ XPD1Bars, JOrig ] = getPD1Sorted( X )
     J = J(1:100, :);
     XPD1Bars = [ J(:, 1)' (J(:, 2) - J(:, 1))' ];
 end
-

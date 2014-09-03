@@ -5,6 +5,8 @@
 %hopSize*skipSize in between delay series samples
 %windowSize (integer): The number of hopSizes to use for each delay series sample
 %(this is also referred to as the "texture window")
+%doScaling: Whether to scale each feature into the range [0, 1] (based on
+%feature definitions)
 %NOTE: A windowSize of 1 skips using a texture window
 
 %RETURNS
@@ -14,7 +16,7 @@
 %SampleDelays: Where each delay sample starts (sample number in the sound
 %file)
 %FeatureNames: A cell array of strings that describe each feature
-function [DelaySeries, Fs, SampleDelays, FeatureNames] = getDelaySeriesFeatures( filename, hopSize, skipSize, windowSize )
+function [DelaySeries, Fs, SampleDelays, FeatureNames] = getDelaySeriesFeatures( filename, hopSize, skipSize, windowSize, doScaling )
     addpath('chroma-ansyn');
     addpath('rastamat');
     readSuccess = 0;
@@ -32,7 +34,10 @@ function [DelaySeries, Fs, SampleDelays, FeatureNames] = getDelaySeriesFeatures(
     	hopSize = round(2048*Fs/44100.0);
     	skipSize = 1;
     	windowSize = 1;%By default do not use a texture window
-    end    
+    end
+    if nargin < 5
+       doScaling = 0; 
+    end
     if size(X, 2) > 1
        %Merge to mono if there is more than one channel
        X = sum(X, 2)/size(X, 2); 
@@ -44,21 +49,29 @@ function [DelaySeries, Fs, SampleDelays, FeatureNames] = getDelaySeriesFeatures(
     S = abs(S);
     NSpectrumSamples = size(S, 1);
     NAWindows = size(S, 2);
+    S = S/NSpectrumSamples;%Normalize S
     
     %Spectral Centroid
     MulMat = repmat((1:NSpectrumSamples)', [1, NAWindows]);
-    Centroid = sum(S.*MulMat)/NSpectrumSamples;
+    Centroid = sum(S.*MulMat, 1)./sum(S, 1);
+    if doScaling
+       Centroid = Centroid / NSpectrumSamples; 
+    end
     
     %Spectral Roloff
     Roloff = cumsum(S, 1)./repmat(sum(S, 1) + eps, NSpectrumSamples, 1);
-    Roloff(Roloff > 0.85) = 0;
-    Roloff(Roloff <= 0.85) = 1;
-    Roloff = sum(Roloff);
+    Roloff = sum(Roloff <= 0.85, 1);
+    if doScaling
+       Roloff = Roloff / NSpectrumSamples; 
+    end
     
     %Spectral Flux
     S2 = [zeros(NSpectrumSamples, 1) S(:, 1:end-1)];
     Flux = S - S2;
-    Flux = sum(Flux.*Flux);
+    Flux = sum(Flux.*Flux, 1);
+    if doScaling
+       Flux = Flux / NSpectrumSamples; 
+    end
    
     %Zero crossings
     XDelay = [0; X(1:end-1)];
@@ -66,6 +79,9 @@ function [DelaySeries, Fs, SampleDelays, FeatureNames] = getDelaySeriesFeatures(
     ZeroCrossings = zeros(1, NAWindows);
     for ii = 1:length(ZeroCrossings)
        ZeroCrossings(ii) =  sum(AllZeroCrossings(1+(ii-1)*hopSize:ii*hopSize));
+    end
+    if doScaling
+       ZeroCrossings = ZeroCrossings / hopSize; 
     end
     
     %Use Dan Ellis's MFCC code

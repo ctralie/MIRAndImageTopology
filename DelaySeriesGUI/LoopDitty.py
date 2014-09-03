@@ -45,9 +45,12 @@ def doPCA(DelaySeries, ncomponents = 3):
 	X[np.isnan(X)] = 0
 	D = (X.T).dot(X)
 	(lam, eigvecs) = linalg.eig(D)
+	lam = np.abs(lam)
+	varExplained = np.sum(lam[0:ncomponents])/np.sum(lam)
+	print "2D Var Explained: %g"%(np.sum(lam[0:2])/np.sum(lam))
 	eigvecs = eigvecs[:, 0:ncomponents]
 	Y = X.dot(eigvecs)
-	return Y
+	return (Y, varExplained)
 
 #http://zetcode.com/wxpython/dialogs/
 class DelaySeriesParamsDialog(wx.Dialog):
@@ -294,7 +297,8 @@ class LoopDittyFrame(wx.Frame):
 			idx = np.append(idx, self.MFCCIdx)
 		if self.ChromaCheckbox.GetValue():
 			idx = np.append(idx, self.ChromaIdx)
-		self.glcanvas.X = doPCA(self.DelaySeries[:, idx])
+		(self.glcanvas.X, self.varExplained) = doPCA(self.DelaySeries[:, idx])
+		self.varExplainedTxt.SetValue("%g"%self.varExplained)
 		self.glcanvas.vbo = vbo.VBO(np.array(self.glcanvas.X, dtype='float32'))
 	
 	def ToggleFeature(self, evt):
@@ -315,6 +319,7 @@ class LoopDittyFrame(wx.Frame):
 		self.skipSize = 1
 		self.windowSize = 43
 		self.Fs = 22050
+		self.varExplained = 0.0
 		
 		self.size = size
 		self.pos = pos
@@ -390,7 +395,21 @@ class LoopDittyFrame(wx.Frame):
 		self.sampleRateTxt = wx.TextCtrl(self)
 		self.sampleRateTxt.SetValue("%i"%self.Fs)
 		hbox4.Add(self.sampleRateTxt, flag=wx.LEFT, border=5)
-		animatePanel.Add(hbox4)				
+		animatePanel.Add(hbox4)
+
+		hbox5 = wx.BoxSizer(wx.HORIZONTAL)        
+		hbox5.Add(wx.StaticText(self, label='Variance Explained'))
+		self.varExplainedTxt = wx.TextCtrl(self)
+		self.varExplainedTxt.SetValue("%g"%self.varExplained)
+		hbox5.Add(self.varExplainedTxt, flag=wx.LEFT, border=5)
+		animatePanel.Add(hbox5)
+		
+		hbox6 = wx.BoxSizer(wx.HORIZONTAL)
+		hbox6.Add(wx.StaticText(self, label='NumberPoints'))
+		self.NumberPointsTxt = wx.TextCtrl(self)
+		self.NumberPointsTxt.SetValue("0")
+		hbox6.Add(self.NumberPointsTxt, flag=wx.LEFT, border=5)
+		animatePanel.Add(hbox6)						
 		
 		#Finally add the two main panels to the sizer		
 		self.sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -427,6 +446,7 @@ class LoopDittyFrame(wx.Frame):
 			paramsDlg.Destroy()
 			[self.hopSize, self.skipSize, self.windowSize] = [paramsDlg.hopSize, paramsDlg.skipSize, paramsDlg.windowSize]
 			self.soundSamples, self.DelaySeries, self.Fs, self.glcanvas.SampleDelays, self.TimbreIdx, self.MFCCIdx, self.ChromaIdx = s.processFile(filepath, self.hopSize, self.skipSize, self.windowSize)
+			self.NumberPointsTxt.SetValue("%i"%len(self.glcanvas.SampleDelays))
 			self.setupPosVBO()
 			self.glcanvas.filename = filepath
 			#Setup X colors

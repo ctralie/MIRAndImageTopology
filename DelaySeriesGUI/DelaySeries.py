@@ -81,7 +81,7 @@ class DelaySeries(object):
 		#Spectral Centroid
 		MulMat = np.tile(1 + np.arange(NSpectrumSamples), (NAWindows, 1))
 		MulMat = MulMat.T
-		Centroid = np.sum(SHalf*MulMat, 0)/float(NSpectrumSamples)
+		Centroid = np.sum(SHalf*MulMat, 0)/np.sum(SHalf, 0)
 		Centroid = Centroid.reshape((1, len(Centroid)))
 		
 		#Spectral Roloff

@@ -28,24 +28,24 @@ Improvement = DTDA - D;
 colorRange = [min(min(DTDA(:)), min(D(:))), max(max(DTDA(:)), max(D(:)))];
 subplot(2, 2, 1);
 imagesc(DTDA);
-set(gca, 'YLim', [0 N+1], 'YTick', 1:N, 'YTickLabel', genres);
-set(gca, 'XLim', [0 N+1], 'XTick', 1:N, 'XTickLabel', genres);
+set(gca, 'YLim', [0 NGenres+1], 'YTick', 1:NGenres, 'YTickLabel', genres);
+set(gca, 'XLim', [0 NGenres+1], 'XTick', 1:NGenres, 'XTickLabel', genres);
 title('With TDA');
 caxis(colorRange);
 colorbar;
 
 subplot(2, 2, 2);
 imagesc(D);
-set(gca, 'YLim', [0 N+1], 'YTick', 1:N, 'YTickLabel', genres);
-set(gca, 'XLim', [0 N+1], 'XTick', 1:N, 'XTickLabel', genres);
+set(gca, 'YLim', [0 NGenres+1], 'YTick', 1:NGenres, 'YTickLabel', genres);
+set(gca, 'XLim', [0 NGenres+1], 'XTick', 1:NGenres, 'XTickLabel', genres);
 title('Without TDA');
 caxis(colorRange);
 colorbar;
 
 subplot(2, 2, 3);
 imagesc(Improvement);
-set(gca, 'YLim', [0 N+1], 'YTick', 1:N, 'YTickLabel', genres);
-set(gca, 'XLim', [0 N+1], 'XTick', 1:N, 'XTickLabel', genres);
+set(gca, 'YLim', [0 NGenres+1], 'YTick', 1:NGenres, 'YTickLabel', genres);
+set(gca, 'XLim', [0 NGenres+1], 'XTick', 1:NGenres, 'XTickLabel', genres);
 colorbar;
 title('Improvement');
 
