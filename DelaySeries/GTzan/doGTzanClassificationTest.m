@@ -4,21 +4,22 @@
 
 %Inputs:
 %genresToUse: Indexes corresponding to the genres to use in this test
+%SongsPerGenre: The number of songs per genre
 %NPrC: Number of principal components to use for the TDA features
 %NNeighb: Number of neighbors to use in nearest neighbor classification
 %useTDA: 0: Features by themselves, 1: TDA Features only, 2: Both
 
 %Returns:
 %Confusion: The confusion matrix
-function [Confusion] = doGTzanClassificationTest(genresToUse, NPrC, NNeighb, useTDA)
+function [Confusion] = doGTzanClassificationTest(genresToUse, SongsPerGenre, NPrC, NNeighb, useTDA)
     load('GTzanFeatures');
     fOrig = cell2mat(featuresOrig');
     fTDA = cell2mat(featuresTDA');
 
     %Pick the genres that should take place in this classification task
     NGenres = length(genresToUse);
-    idx1 = repmat(1:100, [NGenres, 1])';
-    idx2 = repmat((genresToUse-1)*100, [100, 1]);
+    idx1 = repmat(1:SongsPerGenre, [NGenres, 1])';
+    idx2 = repmat((genresToUse-1)*SongsPerGenre, [SongsPerGenre, 1]);
     idx = idx1(:) + idx2(:);
     fOrig = fOrig(idx, :);
     fTDA = fTDA(idx, :);
@@ -26,19 +27,19 @@ function [Confusion] = doGTzanClassificationTest(genresToUse, NPrC, NNeighb, use
 
     %Shuffle songs
     idx = [];
-    for ii = 0:100:NGenres*100-1
-        idx = [idx (ii + randperm(100))];
+    for ii = 0:SongsPerGenre:NGenres*SongsPerGenre-1
+        idx = [idx (ii + randperm(SongsPerGenre))];
     end
     fOrig = fOrig(idx, :);
     fTDA = fTDA(idx, :);
 
     %Do 10-fold cross-validation
-    for ii = 0:10:99
+    for ii = 0:SongsPerGenre/10:SongsPerGenre-1
         %Step 1: Select the disjoint training and test sets
-        idx1 = repmat(0:100:NGenres*100-1, [10, 1]);
-        idx2 = repmat(ii+(1:10), [NGenres, 1])';
+        idx1 = repmat(0:SongsPerGenre:NGenres*SongsPerGenre-1, [SongsPerGenre/10, 1]);
+        idx2 = repmat(ii+(1:SongsPerGenre/10), [NGenres, 1])';
         testIdx = idx1(:) + idx2(:);
-        trainIdx = 1:100*NGenres;
+        trainIdx = 1:SongsPerGenre*NGenres;
         trainIdx(testIdx) = -1;
         trainIdx = trainIdx(trainIdx > 0)';
 
@@ -98,11 +99,11 @@ function [Confusion] = doGTzanClassificationTest(genresToUse, NPrC, NNeighb, use
         D = D(1:size(XTest, 1), size(XTest, 1)+1:end);
         [~, idx] = sort(D, 2);%Figure out the indexes of the closest points
         idx = idx(:, 1:NNeighb);
-        idx = ceil(idx/90);
+        idx = ceil(idx/(SongsPerGenre*9.0/10.0));
         
         %Step 6: Update the confusion matrix
         idxGuessed = mode(idx, 2);
-        idxCorrect = repmat(1:NGenres, [10, 1]);
+        idxCorrect = repmat(1:NGenres, [SongsPerGenre/10, 1]);
         idxCorrect = idxCorrect(:);
         for kk = 1:length(idxGuessed)
            Confusion(idxCorrect(kk), idxGuessed(kk)) = Confusion(idxCorrect(kk), idxGuessed(kk)) + 1;

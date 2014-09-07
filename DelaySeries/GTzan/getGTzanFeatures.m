@@ -3,7 +3,7 @@
 %Tzanetakis 2002 dataset
 %indices: The indices of the genres to compute (Useful to run this file
 %on different cores with different indices to parallelize computation)
-function [] = getGTzanFeatures(indices, subsample, foldername)
+function [] = getGTzanFeatures(indices, SongsPerGenre, subsample, foldername)
     addpath('genres');
     addpath('..');
     addpath('../chroma-ansyn');
@@ -15,10 +15,10 @@ function [] = getGTzanFeatures(indices, subsample, foldername)
     featuresTDA = {};
     AllPDs1 = {};
     AllPDS0 = {};
-    if nargin < 2
+    if nargin < 3
         subsample = 1;
     end
-    if nargin < 3
+    if nargin < 4
         foldername = '.'; 
     end
     %This is assuming a texture window (so means/variances)
@@ -48,7 +48,7 @@ function [] = getGTzanFeatures(indices, subsample, foldername)
        XTDA = [];
        PDs1 = {};
        PDs0 = {};
-       for jj = 1:100
+       for jj = 1:SongsPerGenre
            filename = sprintf('genres/%s/%s.%.5i.au', genre, genre, jj-1);
            [DelaySeries, ~, ~, FeatureNames] = getDelaySeriesFeatures(filename, hopSize, 1, NWin);
            %Save the mean and variance of all features to "featuresOrig"
@@ -69,7 +69,7 @@ function [] = getGTzanFeatures(indices, subsample, foldername)
            [thisXTDAMFCC, MFCCPD1, MFCCPD0] = getPD1Sorted(DelaySeries(1:subsample:end, MFCCIndices));
            [thisXTDAChroma, ChromaPD1, ChromaPD0] = getPD1Sorted(DelaySeries(1:subsample:end, ChromaIndices));
            if (isempty(XTDA))
-              XTDA = zeros(100, length(thisXTDATimbre)*3); 
+              XTDA = zeros(SongsPerGenre, length(thisXTDATimbre)*3); 
            end
            XTDA(jj, :) = [thisXTDATimbre thisXTDAMFCC thisXTDAChroma];
            fprintf(1, 'Finished %s %i\n', genre, jj);
