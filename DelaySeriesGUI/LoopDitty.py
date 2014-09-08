@@ -21,6 +21,7 @@ import time
 from DelaySeries import *
 import pygame.mixer
 import time
+import matplotlib.pyplot as plt
 
 DEFAULT_SIZE = wx.Size(1200, 800)
 DEFAULT_POS = wx.Point(10, 10)
@@ -287,9 +288,9 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 		self.Refresh()
 
 class LoopDittyFrame(wx.Frame):
-	(ID_LOADSONGFILE, ID_SAVESCREENSHOT) = (1, 2)
+	(ID_LOADSONGFILE, ID_SAVESCREENSHOT, ID_ARCLENGTHDOWNSAMPLE) = (1, 2, 3)
 	
-	def setupPosVBO(self):
+	def setupPosColorVBO(self):
 		idx = np.array([], dtype = 'int32')
 		if self.TimbreCheckbox.GetValue():
 			idx = np.append(idx, self.TimbreIdx)
@@ -300,6 +301,9 @@ class LoopDittyFrame(wx.Frame):
 		(self.glcanvas.X, self.varExplained) = doPCA(self.DelaySeries[:, idx])
 		self.varExplainedTxt.SetValue("%g"%self.varExplained)
 		self.glcanvas.vbo = vbo.VBO(np.array(self.glcanvas.X, dtype='float32'))
+		cmConvert = cm.get_cmap('jet')
+		self.glcanvas.XColors = cmConvert(np.linspace(0, 1, len(self.glcanvas.SampleDelays) ))[:, 0:3]
+		self.glcanvas.XColorsVBO = vbo.VBO(np.array(self.glcanvas.XColors, dtype='float32'))		
 	
 	def ToggleFeature(self, evt):
 		self.setupPosVBO()
@@ -312,8 +316,7 @@ class LoopDittyFrame(wx.Frame):
 		self.CreateStatusBar()
 		
 		#Sound variables
-		self.soundSamples = None
-		self.SampleDelays = None
+		self.soundSamples = np.array([])
 		pygame.mixer.init()
 		self.hopSize = 512
 		self.skipSize = 1
@@ -332,9 +335,14 @@ class LoopDittyFrame(wx.Frame):
 		menuExit = filemenu.Append(wx.ID_EXIT,"E&xit"," Terminate the program")
 		self.Bind(wx.EVT_MENU, self.OnExit, menuExit)
 		
+		editmenu = wx.Menu()
+		menuArcLengthDownsample = editmenu.Append(LoopDittyFrame.ID_ARCLENGTHDOWNSAMPLE, "&Downsample By Arc Length", "Downsample By Arc Length")
+		self.Bind(wx.EVT_MENU, self.OnArcLengthDownsample, menuArcLengthDownsample)
+		
 		# Creating the menubar.
 		menuBar = wx.MenuBar()
 		menuBar.Append(filemenu,"&File") # Adding the "filemenu" to the MenuBar
+		menuBar.Append(editmenu, "&Edit")
 		self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
 		self.glcanvas = LoopDittyCanvas(self)
 		
@@ -445,14 +453,14 @@ class LoopDittyFrame(wx.Frame):
 			paramsDlg.ShowModal()
 			paramsDlg.Destroy()
 			[self.hopSize, self.skipSize, self.windowSize] = [paramsDlg.hopSize, paramsDlg.skipSize, paramsDlg.windowSize]
-			self.soundSamples, self.DelaySeries, self.Fs, self.glcanvas.SampleDelays, self.TimbreIdx, self.MFCCIdx, self.ChromaIdx = s.processFile(filepath, self.hopSize, self.skipSize, self.windowSize)
+			#Keep track of the original delay series and sample delays to allow
+			#for arbitrary resampling later
+			self.soundSamples, self.OrigDelaySeries, self.Fs, self.OrigSampleDelays, self.TimbreIdx, self.MFCCIdx, self.ChromaIdx = s.processFile(filepath, self.hopSize, self.skipSize, self.windowSize)
+			self.DelaySeries = self.OrigDelaySeries.copy()
+			self.glcanvas.SampleDelays = self.OrigSampleDelays.copy()
 			self.NumberPointsTxt.SetValue("%i"%len(self.glcanvas.SampleDelays))
-			self.setupPosVBO()
+			self.setupPosColorVBO()
 			self.glcanvas.filename = filepath
-			#Setup X colors
-			cmConvert = cm.get_cmap('jet')
-			self.glcanvas.XColors = cmConvert(np.linspace(0, 1, len(self.glcanvas.SampleDelays) ))[:, 0:3]
-			self.glcanvas.XColorsVBO = vbo.VBO(np.array(self.glcanvas.XColors, dtype='float32'))		
 			self.glcanvas.camera.centerOnPoints(self.glcanvas.X)
 			print "Loaded %s"%filename
 			#Update GUI Elements
@@ -474,6 +482,46 @@ class LoopDittyFrame(wx.Frame):
 			saveImageGL(self.glcanvas, filepath)
 		dlg.Destroy()
 		return
+
+	def OnArcLengthDownsample(self, evt):
+		if len(self.soundSamples) == 0:
+			return
+		dlg = wx.TextEntryDialog(None,'Number of Points','Number of Points', '1')
+		if dlg.ShowModal() == wx.ID_OK:
+			#Need to resample and update DelaySeries and SampleDelays
+			N = int(dlg.GetValue())
+			OrigX = self.OrigDelaySeries
+			OrigDelays = self.OrigSampleDelays
+			#First compute the total arc length across the whole song
+			sedges = [np.sqrt(np.sum( (OrigX[i, :] - OrigX[i-1])**2 )) for i in range(1, OrigX.shape[0])]
+			sorig = np.cumsum(sedges)
+			#Now resample uniformly along the curve
+			snew = np.linspace(0, sorig[-1], N)
+			SampleDelays = np.zeros(N)
+			#First and last points are fixed
+			SampleDelays[-1] = OrigDelays[-1]
+			DelaySeries = np.zeros((N, OrigX.shape[1]))
+			DelaySeries[0, :] = OrigX[0, :]
+			#Fill in the rest of the points
+			k = 0
+			plt.plot(sorig)
+			plt.hold(True)
+			plt.plot(snew)
+			plt.show()
+			for i in range(1, N-1):
+				while sorig[k] < snew[i]:
+					k = k+1
+				s0 = sorig[k-1]
+				s1 = sorig[k]
+				t = (snew[i] - s0)/(s1 - s0)
+				#Linear interpolation
+				DelaySeries[i, :] = (1-t)*OrigX[k-1, :] + t*OrigX[k, :]
+				SampleDelays[i] = (1-t)*OrigDelays[k-1] + t*OrigDelays[k]
+			self.NumberPointsTxt.SetValue("%i"%len(self.glcanvas.SampleDelays))
+			self.DelaySeries = DelaySeries
+			self.glcanvas.SampleDelays = SampleDelays
+			self.setupPosColorVBO()				
+		dlg.Destroy()
 
 	def OnExit(self, evt):
 		self.Close(True)
