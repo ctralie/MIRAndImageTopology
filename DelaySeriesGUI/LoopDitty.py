@@ -13,6 +13,7 @@ from sys import exit, argv
 import random
 import numpy as np
 import scipy.io as sio
+import scipy.spatial as spatial
 from pylab import cm
 import os
 import subprocess
@@ -125,6 +126,68 @@ class DelaySeriesParamsDialog(wx.Dialog):
 		self.Destroy()
 
 
+class DensityThresholdDialog(wx.Dialog):
+	def __init__(self, *args, **kw):
+		super(DensityThresholdDialog, self).__init__(*args, **kw)
+		#Remember parameters from last time
+		self.densityNeighborsDef = args[0].densityNeighbors
+		self.densityNPointsDef = args[0].densityNPoints
+		self.lowDensityDef = args[0].lowDensity
+		self.InitUI()
+		self.SetSize((250, 200))
+		self.SetTitle("Density Thresholding Parameters")
+
+
+	def InitUI(self):
+		pnl = wx.Panel(self)
+		vbox = wx.BoxSizer(wx.VERTICAL)
+
+		sb = wx.StaticBox(pnl, label='Parameters')
+		sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
+
+		hbox1 = wx.BoxSizer(wx.HORIZONTAL)        
+		hbox1.Add(wx.StaticText(pnl, label='Density Threshold'))
+		self.densityNeighbors = wx.TextCtrl(pnl)
+		self.densityNeighbors.SetValue("%s"%self.densityNeighborsDef)
+		hbox1.Add(self.densityNeighbors, flag=wx.LEFT, border=5)
+		sbs.Add(hbox1)
+
+		hbox2 = wx.BoxSizer(wx.HORIZONTAL)        
+		hbox2.Add(wx.StaticText(pnl, label='Number of Points'))
+		self.densityNPoints = wx.TextCtrl(pnl)
+		self.densityNPoints.SetValue("%i"%self.densityNPointsDef)
+		hbox2.Add(self.densityNPoints, flag=wx.LEFT, border=5)
+		sbs.Add(hbox2)
+
+		self.lowDensity = wx.CheckBox(self, label="Low Density")
+		self.lowDensity.SetValue(self.lowDensityDef)
+		vbox.Add(self.lowDensity)
+
+		pnl.SetSizer(sbs)
+
+		hboxexit = wx.BoxSizer(wx.HORIZONTAL)
+		okButton = wx.Button(self, label='Ok')
+		closeButton = wx.Button(self, label='Close')
+		hboxexit.Add(okButton)
+		hboxexit.Add(closeButton, flag=wx.LEFT, border=5)
+
+		vbox.Add(pnl, proportion=1, 
+		flag=wx.ALL|wx.EXPAND, border=5)
+		vbox.Add(hboxexit, 
+		flag=wx.ALIGN_CENTER|wx.TOP|wx.BOTTOM, border=10)
+
+		self.SetSizer(vbox)
+
+		okButton.Bind(wx.EVT_BUTTON, self.OnClose)
+		closeButton.Bind(wx.EVT_BUTTON, self.OnClose)
+
+
+	def OnClose(self, e):
+		self.densityNeighbors = float(self.densityNeighbors.GetValue())
+		self.densityNPoints = int(self.densityNPoints.GetValue())
+		self.lowDensity = self.lowDensity.GetValue()
+		self.Destroy()
+
 class LoopDittyCanvas(glcanvas.GLCanvas):
 	def __init__(self, parent):
 		attribs = (glcanvas.WX_GL_RGBA, glcanvas.WX_GL_DOUBLEBUFFER, glcanvas.WX_GL_DEPTH_SIZE, 24)
@@ -151,6 +214,7 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 		self.SampleDelays = np.array([])
 		self.Playing = False
 		self.PlayIDX = 0
+		self.DrawEdges = True
 		
 		self.GLinitialized = False
 		#GL-related events
@@ -222,7 +286,7 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 			if self.Playing:
 				self.endTime = time.time()
 				dT = self.endTime - self.startTime
-				if dT > self.SampleDelays[self.PlayIDX]:
+				while dT > self.SampleDelays[self.PlayIDX]:
 					self.PlayIDX = self.PlayIDX + 1
 					if self.PlayIDX == NPoints - 1:
 						self.Playing = False
@@ -239,8 +303,9 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 			glEnableClientState(GL_COLOR_ARRAY)
 			glColorPointer(3, GL_FLOAT, 0, self.XColorsVBO)
 			
-			glDrawArrays(GL_LINES, StartPoint, EndPoint - StartPoint + 1)
-			glDrawArrays(GL_LINES, StartPoint+1, EndPoint)
+			if self.DrawEdges:
+				glDrawArrays(GL_LINES, StartPoint, EndPoint - StartPoint + 1)
+				glDrawArrays(GL_LINES, StartPoint+1, EndPoint)
 			glDrawArrays(GL_POINTS, StartPoint, EndPoint - StartPoint + 1)
 			self.XColorsVBO.unbind()
 			self.vbo.unbind()
@@ -288,7 +353,7 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 		self.Refresh()
 
 class LoopDittyFrame(wx.Frame):
-	(ID_LOADSONGFILE, ID_SAVESCREENSHOT, ID_ARCLENGTHDOWNSAMPLE) = (1, 2, 3)
+	(ID_LOADSONGFILE, ID_SAVESCREENSHOT, ID_ARCLENGTHDOWNSAMPLE, ID_DENSITYTHRESHOLD) = (1, 2, 3, 4)
 	
 	def setupPosColorVBO(self):
 		idx = np.array([], dtype = 'int32')
@@ -309,6 +374,10 @@ class LoopDittyFrame(wx.Frame):
 		self.setupPosVBO()
 		self.glcanvas.Refresh()
 	
+	def ToggleDisplayEdges(self, evt):
+		self.glcanvas.DrawEdges = self.EdgesToggleCheckbox.GetValue()
+		self.glcanvas.Refresh()
+	
 	def __init__(self, parent, id, title, pos=DEFAULT_POS, size=DEFAULT_SIZE, style=wx.DEFAULT_FRAME_STYLE, name = 'GLWindow'):
 		style = style | wx.NO_FULL_REPAINT_ON_RESIZE
 		super(LoopDittyFrame, self).__init__(parent, id, title, pos, size, style, name)
@@ -321,11 +390,18 @@ class LoopDittyFrame(wx.Frame):
 		self.hopSize = 512
 		self.skipSize = 1
 		self.windowSize = 43
+		self.densityNeighbors = 3
+		self.densityNPoints = 0
+		self.lowDensity = False
 		self.Fs = 22050
 		self.varExplained = 0.0
 		
 		self.size = size
 		self.pos = pos
+		
+		#Cached distance matrix
+		self.D = np.array([])
+		self.DistHist = (None, None)
 		
 		filemenu = wx.Menu()
 		menuOpenSong = filemenu.Append(LoopDittyFrame.ID_LOADSONGFILE, "&Load Song File","Load Song File")
@@ -338,6 +414,8 @@ class LoopDittyFrame(wx.Frame):
 		editmenu = wx.Menu()
 		menuArcLengthDownsample = editmenu.Append(LoopDittyFrame.ID_ARCLENGTHDOWNSAMPLE, "&Downsample By Arc Length", "Downsample By Arc Length")
 		self.Bind(wx.EVT_MENU, self.OnArcLengthDownsample, menuArcLengthDownsample)
+		menuDensityThreshold = editmenu.Append(LoopDittyFrame.ID_DENSITYTHRESHOLD, "&Density Threshold Sample", "Density Threshold Sample")
+		self.Bind(wx.EVT_MENU, self.OnDensitySubsample, menuDensityThreshold)
 		
 		# Creating the menubar.
 		menuBar = wx.MenuBar()
@@ -355,6 +433,11 @@ class LoopDittyFrame(wx.Frame):
 		playButton = wx.Button(self, -1, "Play")
 		self.Bind(wx.EVT_BUTTON, self.glcanvas.startAnimation, playButton)
 		animatePanel.Add(playButton, 0, wx.EXPAND)
+		#Checkbox for edge toggle
+		self.EdgesToggleCheckbox = wx.CheckBox(self, label="Display Edges")
+		self.EdgesToggleCheckbox.SetValue(True)
+		self.EdgesToggleCheckbox.Bind(wx.EVT_CHECKBOX, self.ToggleDisplayEdges)
+		animatePanel.Add(self.EdgesToggleCheckbox)
 		#Checkboxes for CAF subsets
 		self.TimbreCheckbox = wx.CheckBox(self, label="Timbre")
 		self.TimbreCheckbox.SetValue(True)
@@ -498,17 +581,21 @@ class LoopDittyFrame(wx.Frame):
 			#Now resample uniformly along the curve
 			snew = np.linspace(0, sorig[-1], N)
 			SampleDelays = np.zeros(N)
-			#First and last points are fixed
+			#First point is fixed
 			SampleDelays[-1] = OrigDelays[-1]
 			DelaySeries = np.zeros((N, OrigX.shape[1]))
 			DelaySeries[0, :] = OrigX[0, :]
 			#Fill in the rest of the points
 			k = 0
+			plt.subplot(1, 2, 1)
 			plt.plot(sorig)
 			plt.hold(True)
 			plt.plot(snew)
-			plt.show()
-			for i in range(1, N-1):
+			plt.xlabel('Sample Number')
+			plt.ylabel('Arc Length')
+			plt.legend(('Original', 'New'))
+			plt.title('Arc Length')
+			for i in range(1, N):
 				while sorig[k] < snew[i]:
 					k = k+1
 				s0 = sorig[k-1]
@@ -517,12 +604,49 @@ class LoopDittyFrame(wx.Frame):
 				#Linear interpolation
 				DelaySeries[i, :] = (1-t)*OrigX[k-1, :] + t*OrigX[k, :]
 				SampleDelays[i] = (1-t)*OrigDelays[k-1] + t*OrigDelays[k]
-			self.NumberPointsTxt.SetValue("%i"%len(self.glcanvas.SampleDelays))
+			plt.subplot(1, 2, 2)
+			plt.plot(OrigDelays)
+			plt.hold(True)
+			plt.plot(SampleDelays)
+			plt.xlabel('Sample Number')
+			plt.ylabel('Sample Delay')
+			plt.legend(('Original', 'New'))
+			plt.title('Sample Delays')
+			plt.show()
 			self.DelaySeries = DelaySeries
 			self.glcanvas.SampleDelays = SampleDelays
-			self.setupPosColorVBO()				
+			self.setupPosColorVBO()
+			self.NumberPointsTxt.SetValue("%i"%len(self.glcanvas.SampleDelays))
 		dlg.Destroy()
 
+	def OnDensitySubsample(self, evt):
+		if len(self.soundSamples) == 0:
+			return
+		densityDlg = DensityThresholdDialog(self)
+		densityDlg.ShowModal()
+		densityDlg.Destroy()
+		self.densityNeighbors = densityDlg.densityNeighbors
+		self.densityNPoints = densityDlg.densityNPoints
+		self.lowDensity = densityDlg.lowDensity
+		
+		#Find the first "densityNPoints" points in ascending order of max neighborhood point
+		mask = np.zeros(self.OrigDelaySeries.shape[0])
+		if len(self.D) == 0:
+			self.D = spatial.distance_matrix(self.OrigDelaySeries, self.OrigDelaySeries)
+		D = np.sort(self.D, 0)
+		D = D[self.densityNeighbors, :]
+		idx = np.argsort(D.flatten())
+		if self.lowDensity:
+			idx = idx[-self.densityNPoints:]
+		else:
+			idx = idx[0:self.densityNPoints]
+		idx = np.sort(idx)
+		self.DelaySeries = self.OrigDelaySeries[idx, :]
+		self.glcanvas.SampleDelays = self.OrigSampleDelays[idx]
+		self.setupPosColorVBO()
+		self.NumberPointsTxt.SetValue("%i"%len(self.glcanvas.SampleDelays))
+		
+		
 	def OnExit(self, evt):
 		self.Close(True)
 		return
