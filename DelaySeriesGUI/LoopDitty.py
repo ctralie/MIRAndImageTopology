@@ -39,6 +39,8 @@ def saveImageGL(mvcanvas, filename):
 
 
 
+#Use OrigDelaySeries to come up with the principal components,
+#but project "DelaySeries" onto it
 def doPCA(DelaySeries, ncomponents = 3):
 	DelaySeries = DelaySeries - np.min(DelaySeries, 0)
 	DelaySeries = DelaySeries/np.max(DelaySeries, 0)
@@ -146,9 +148,9 @@ class DensityThresholdDialog(wx.Dialog):
 		sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
 
 		hbox1 = wx.BoxSizer(wx.HORIZONTAL)        
-		hbox1.Add(wx.StaticText(pnl, label='Density Threshold'))
+		hbox1.Add(wx.StaticText(pnl, label='Number of Neighbors'))
 		self.densityNeighbors = wx.TextCtrl(pnl)
-		self.densityNeighbors.SetValue("%s"%self.densityNeighborsDef)
+		self.densityNeighbors.SetValue("%i"%self.densityNeighborsDef)
 		hbox1.Add(self.densityNeighbors, flag=wx.LEFT, border=5)
 		sbs.Add(hbox1)
 
@@ -355,7 +357,7 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 class LoopDittyFrame(wx.Frame):
 	(ID_LOADSONGFILE, ID_SAVESCREENSHOT, ID_ARCLENGTHDOWNSAMPLE, ID_DENSITYTHRESHOLD) = (1, 2, 3, 4)
 	
-	def setupPosColorVBO(self):
+	def setupPosColorVBOMask(self, mask):
 		idx = np.array([], dtype = 'int32')
 		if self.TimbreCheckbox.GetValue():
 			idx = np.append(idx, self.TimbreIdx)
@@ -364,11 +366,17 @@ class LoopDittyFrame(wx.Frame):
 		if self.ChromaCheckbox.GetValue():
 			idx = np.append(idx, self.ChromaIdx)
 		(self.glcanvas.X, self.varExplained) = doPCA(self.DelaySeries[:, idx])
+		self.glcanvas.X = self.glcanvas.X[mask, :]
 		self.varExplainedTxt.SetValue("%g"%self.varExplained)
 		self.glcanvas.vbo = vbo.VBO(np.array(self.glcanvas.X, dtype='float32'))
 		cmConvert = cm.get_cmap('jet')
-		self.glcanvas.XColors = cmConvert(np.linspace(0, 1, len(self.glcanvas.SampleDelays) ))[:, 0:3]
+		self.glcanvas.XColors = cmConvert(np.linspace(0, 1, self.DelaySeries.shape[0] ))[:, 0:3]
+		self.glcanvas.XColors = self.glcanvas.XColors[mask, :]
 		self.glcanvas.XColorsVBO = vbo.VBO(np.array(self.glcanvas.XColors, dtype='float32'))		
+	
+	def setupPosColorVBO(self):
+		mask = np.arange(self.DelaySeries.shape[0])
+		self.setupPosColorVBOMask(mask)
 	
 	def ToggleFeature(self, evt):
 		self.setupPosVBO()
@@ -391,7 +399,7 @@ class LoopDittyFrame(wx.Frame):
 		self.skipSize = 1
 		self.windowSize = 43
 		self.densityNeighbors = 3
-		self.densityNPoints = 0
+		self.densityNPoints = 500
 		self.lowDensity = False
 		self.Fs = 22050
 		self.varExplained = 0.0
@@ -399,9 +407,9 @@ class LoopDittyFrame(wx.Frame):
 		self.size = size
 		self.pos = pos
 		
-		#Cached distance matrix
+		#Cached distance and sorted distance matrix
 		self.D = np.array([])
-		self.DistHist = (None, None)
+		self.DSorted = np.array([])
 		
 		filemenu = wx.Menu()
 		menuOpenSong = filemenu.Append(LoopDittyFrame.ID_LOADSONGFILE, "&Load Song File","Load Song File")
@@ -626,26 +634,30 @@ class LoopDittyFrame(wx.Frame):
 		densityDlg.ShowModal()
 		densityDlg.Destroy()
 		self.densityNeighbors = densityDlg.densityNeighbors
-		self.densityNPoints = densityDlg.densityNPoints
+		self.densityNPoints = min(densityDlg.densityNPoints, self.OrigDelaySeries.shape[0])
 		self.lowDensity = densityDlg.lowDensity
 		
 		#Find the first "densityNPoints" points in ascending order of max neighborhood point
-		mask = np.zeros(self.OrigDelaySeries.shape[0])
 		if len(self.D) == 0:
+			tic = time.time()
 			self.D = spatial.distance_matrix(self.OrigDelaySeries, self.OrigDelaySeries)
-		D = np.sort(self.D, 0)
-		D = D[self.densityNeighbors, :]
-		idx = np.argsort(D.flatten())
+			toc = time.time()
+			print "Elapsed distance matrix computation time = %g"%(toc - tic)
+			tic = time.time()
+			self.DSorted = np.sort(self.D, 0)
+			toc = time.time()
+			print "Elapsed sorting time = %g"%(toc - tic)
+		D = self.DSorted[self.densityNeighbors, :]
+		mask = np.argsort(D.flatten())
 		if self.lowDensity:
-			idx = idx[-self.densityNPoints:]
+			mask = mask[-self.densityNPoints:]
 		else:
-			idx = idx[0:self.densityNPoints]
-		idx = np.sort(idx)
-		self.DelaySeries = self.OrigDelaySeries[idx, :]
-		self.glcanvas.SampleDelays = self.OrigSampleDelays[idx]
-		self.setupPosColorVBO()
-		self.NumberPointsTxt.SetValue("%i"%len(self.glcanvas.SampleDelays))
-		
+			mask = mask[0:self.densityNPoints]
+		mask = np.sort(mask)
+		self.DelaySeries = self.OrigDelaySeries
+		self.glcanvas.SampleDelays = self.OrigSampleDelays[mask]
+		self.setupPosColorVBOMask(mask)
+		self.NumberPointsTxt.SetValue("%i"%len(self.glcanvas.SampleDelays))		
 		
 	def OnExit(self, evt):
 		self.Close(True)
