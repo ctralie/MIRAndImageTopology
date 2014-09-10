@@ -14,6 +14,7 @@ import random
 import numpy as np
 import scipy.io as sio
 import scipy.spatial as spatial
+import scipy.linalg
 from pylab import cm
 import os
 import subprocess
@@ -48,7 +49,7 @@ def doPCA(DelaySeries, ncomponents = 3):
 	X[np.isinf(X)] = 0
 	X[np.isnan(X)] = 0
 	D = (X.T).dot(X)
-	(lam, eigvecs) = linalg.eig(D)
+	(lam, eigvecs) = np.linalg.eig(D)
 	lam = np.abs(lam)
 	varExplained = np.sum(lam[0:ncomponents])/np.sum(lam)
 	print "2D Var Explained: %g"%(np.sum(lam[0:2])/np.sum(lam))
@@ -150,14 +151,14 @@ class DensityThresholdDialog(wx.Dialog):
 		hbox1 = wx.BoxSizer(wx.HORIZONTAL)        
 		hbox1.Add(wx.StaticText(pnl, label='Number of Neighbors'))
 		self.densityNeighbors = wx.TextCtrl(pnl)
-		self.densityNeighbors.SetValue("%i"%self.densityNeighborsDef)
+		self.densityNeighbors.SetValue("%s"%self.densityNeighborsDef)
 		hbox1.Add(self.densityNeighbors, flag=wx.LEFT, border=5)
 		sbs.Add(hbox1)
 
 		hbox2 = wx.BoxSizer(wx.HORIZONTAL)        
 		hbox2.Add(wx.StaticText(pnl, label='Number of Points'))
 		self.densityNPoints = wx.TextCtrl(pnl)
-		self.densityNPoints.SetValue("%i"%self.densityNPointsDef)
+		self.densityNPoints.SetValue("%s"%self.densityNPointsDef)
 		hbox2.Add(self.densityNPoints, flag=wx.LEFT, border=5)
 		sbs.Add(hbox2)
 
@@ -185,10 +186,67 @@ class DensityThresholdDialog(wx.Dialog):
 
 
 	def OnClose(self, e):
-		self.densityNeighbors = float(self.densityNeighbors.GetValue())
+		self.densityNeighbors = int(self.densityNeighbors.GetValue())
 		self.densityNPoints = int(self.densityNPoints.GetValue())
 		self.lowDensity = self.lowDensity.GetValue()
 		self.Destroy()
+
+class HKSDialog(wx.Dialog):
+	def __init__(self, *args, **kw):
+		super(HKSDialog, self).__init__(*args, **kw)
+		#Remember parameters from last time
+		self.hksNEigsDef = args[0].hksNEigs
+		self.hksTimeDef = args[0].hksTime
+		self.InitUI()
+		self.SetSize((250, 200))
+		self.SetTitle("Heat Kernel Signature Parameters")
+
+
+	def InitUI(self):
+		pnl = wx.Panel(self)
+		vbox = wx.BoxSizer(wx.VERTICAL)
+
+		sb = wx.StaticBox(pnl, label='Parameters')
+		sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
+
+		hbox1 = wx.BoxSizer(wx.HORIZONTAL)        
+		hbox1.Add(wx.StaticText(pnl, label='Number of Eigenvalues'))
+		self.hksNEigs = wx.TextCtrl(pnl)
+		self.hksNEigs.SetValue("%i"%self.hksNEigsDef)
+		hbox1.Add(self.hksNEigs, flag=wx.LEFT, border=5)
+		sbs.Add(hbox1)
+
+		hbox2 = wx.BoxSizer(wx.HORIZONTAL)        
+		hbox2.Add(wx.StaticText(pnl, label='Diffusion Time'))
+		self.hksTime = wx.TextCtrl(pnl)
+		self.hksTime.SetValue("%g"%self.hksTimeDef)
+		hbox2.Add(self.hksTime, flag=wx.LEFT, border=5)
+		sbs.Add(hbox2)
+
+		pnl.SetSizer(sbs)
+
+		hboxexit = wx.BoxSizer(wx.HORIZONTAL)
+		okButton = wx.Button(self, label='Ok')
+		closeButton = wx.Button(self, label='Close')
+		hboxexit.Add(okButton)
+		hboxexit.Add(closeButton, flag=wx.LEFT, border=5)
+
+		vbox.Add(pnl, proportion=1, 
+		flag=wx.ALL|wx.EXPAND, border=5)
+		vbox.Add(hboxexit, 
+		flag=wx.ALIGN_CENTER|wx.TOP|wx.BOTTOM, border=10)
+
+		self.SetSizer(vbox)
+
+		okButton.Bind(wx.EVT_BUTTON, self.OnClose)
+		closeButton.Bind(wx.EVT_BUTTON, self.OnClose)
+
+
+	def OnClose(self, e):
+		self.hksNEigs = int(self.hksNEigs.GetValue())
+		self.hksTime = float(self.hksTime.GetValue())
+		self.Destroy()
+
 
 class LoopDittyCanvas(glcanvas.GLCanvas):
 	def __init__(self, parent):
@@ -356,8 +414,10 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 
 class LoopDittyFrame(wx.Frame):
 	(ID_LOADSONGFILE, ID_SAVESCREENSHOT, ID_ARCLENGTHDOWNSAMPLE, ID_DENSITYTHRESHOLD) = (1, 2, 3, 4)
+	(COLORTYPE_TIME, COLORTYPE_DENSITY, COLORTYPE_HKS) = (1, 2, 3)
 	
-	def setupPosColorVBOMask(self, mask):
+	#Get the indices of the features that are being displayed
+	def getFeaturesIdx(self):
 		idx = np.array([], dtype = 'int32')
 		if self.TimbreCheckbox.GetValue():
 			idx = np.append(idx, self.TimbreIdx)
@@ -366,25 +426,89 @@ class LoopDittyFrame(wx.Frame):
 		if self.ChromaCheckbox.GetValue():
 			idx = np.append(idx, self.ChromaIdx)
 		(self.glcanvas.X, self.varExplained) = doPCA(self.DelaySeries[:, idx])
+		return idx	
+	
+	#Get the sorted distance matrix for the original delay series
+	def getDSorted(self, doSort = True):
+		idx = self.getFeaturesIdx()
+		#If the features have been changed since last time an update is needed
+		if not np.array_equal(idx, self.lastIdx):
+			self.lastIdx = idx;
+			self.D = np.array([])
+		#Find the first "densityNPoints" points in ascending order of max neighborhood point
+		if len(self.D) == 0:
+			tic = time.time()
+			self.D = spatial.distance_matrix(self.OrigDelaySeries[:, idx], self.OrigDelaySeries[:, idx])
+			toc = time.time()
+			print "Elapsed distance matrix computation time = %g"%(toc - tic)
+		if len(self.DSorted) == 0 and doSort:
+			tic = time.time()
+			self.DSorted = np.sort(self.D, 0)
+			toc = time.time()
+			print "Elapsed sorting time = %g"%(toc - tic)	
+	
+	#Get eigenvalues/eigenvectors for the heat kernel signature
+	def getHKSEig(self):
+		self.getDSorted(False)
+		if len(self.hksEigVecs) == 0 or self.hksEigVecs.shape[1] != self.hksNEigs:
+			tic = time.time()
+			D = np.exp(-self.D) #Use negative exponential distance
+			(self.hksEigVals, self.hksEigVecs) = scipy.linalg.eigh(D, eigvals=(0, self.hksNEigs-1))
+			toc = time.time()
+			print "Elapsed eigenvalue/eigenvector computation time = %g"%(toc - tic)
+	
+	def setupPosVBOMask(self, mask):
+		idx = self.getFeaturesIdx()
+		if not np.array_equal(idx, self.lastIdx):
+			self.lastIdx = idx
+			self.D = np.array([])
 		self.glcanvas.X = self.glcanvas.X[mask, :]
 		self.varExplainedTxt.SetValue("%g"%self.varExplained)
 		self.glcanvas.vbo = vbo.VBO(np.array(self.glcanvas.X, dtype='float32'))
-		cmConvert = cm.get_cmap('jet')
-		self.glcanvas.XColors = cmConvert(np.linspace(0, 1, self.DelaySeries.shape[0] ))[:, 0:3]
-		self.glcanvas.XColors = self.glcanvas.XColors[mask, :]
-		self.glcanvas.XColorsVBO = vbo.VBO(np.array(self.glcanvas.XColors, dtype='float32'))		
 	
-	def setupPosColorVBO(self):
-		mask = np.arange(self.DelaySeries.shape[0])
-		self.setupPosColorVBOMask(mask)
+	def setupPosVBO(self):
+		self.setupPosVBOMask(range(self.DelaySeries.shape[0]))
+	
+	def setupColorVBOMask(self, mask):
+		cmConvert = cm.get_cmap('jet')
+		if self.colorType == LoopDittyFrame.COLORTYPE_TIME:
+			self.glcanvas.XColors = cmConvert(np.linspace(0, 1, self.DelaySeries.shape[0] ))[:, 0:3]
+		elif self.colorType == LoopDittyFrame.COLORTYPE_DENSITY:
+			self.getDSorted()
+			density = self.DSorted[self.densityNeighbors, :].flatten()
+			density = density/np.max(density)
+			density = 1 - density #Close near neighbors implies high density
+			density = density #Stretch out color range
+			self.glcanvas.XColors = cmConvert(density)[:, 0:3]
+		elif self.colorType == LoopDittyFrame.COLORTYPE_HKS:
+			self.getHKSEig()
+			hks = np.array(np.exp(-self.hksEigVals*self.hksTime)*self.hksEigVecs)
+			hks = hks*hks
+			hks = np.sqrt(hks.sum(1))
+			hks = hks/np.max(hks)
+			self.glcanvas.XColors = cmConvert(hks)[:, 0:3]
+		self.glcanvas.XColors = self.glcanvas.XColors[mask, :]
+		self.glcanvas.XColorsVBO = vbo.VBO(np.array(self.glcanvas.XColors, dtype='float32'))
+			
+	def setupColorVBO(self):
+		self.setupColorVBOMask(range(self.DelaySeries.shape[0]))
 	
 	def ToggleFeature(self, evt):
 		self.setupPosVBO()
+		self.setupColorVBO()
 		self.glcanvas.Refresh()
 	
 	def ToggleDisplayEdges(self, evt):
 		self.glcanvas.DrawEdges = self.EdgesToggleCheckbox.GetValue()
 		self.glcanvas.Refresh()
+	
+	def initDensityAndHKSVars(self):
+		self.hksEigVecs = np.array([])
+		self.hksEigVals = np.array([])
+		#Cached distance and sorted distance matrix
+		self.D = np.array([])
+		self.DSorted = np.array([])
+		self.DelaySeriesMask = np.array([])
 	
 	def __init__(self, parent, id, title, pos=DEFAULT_POS, size=DEFAULT_SIZE, style=wx.DEFAULT_FRAME_STYLE, name = 'GLWindow'):
 		style = style | wx.NO_FULL_REPAINT_ON_RESIZE
@@ -398,18 +522,23 @@ class LoopDittyFrame(wx.Frame):
 		self.hopSize = 512
 		self.skipSize = 1
 		self.windowSize = 43
+		#Density variables
 		self.densityNeighbors = 3
 		self.densityNPoints = 500
 		self.lowDensity = False
+		#Heat kernel signature variables
+		self.hksNEigs = 50
+		self.hksTime = 0.05
+
+		self.initDensityAndHKSVars()
+		
 		self.Fs = 22050
 		self.varExplained = 0.0
+		self.colorType = LoopDittyFrame.COLORTYPE_TIME
+		self.lastIdx = np.array([])
 		
 		self.size = size
 		self.pos = pos
-		
-		#Cached distance and sorted distance matrix
-		self.D = np.array([])
-		self.DSorted = np.array([])
 		
 		filemenu = wx.Menu()
 		menuOpenSong = filemenu.Append(LoopDittyFrame.ID_LOADSONGFILE, "&Load Song File","Load Song File")
@@ -441,11 +570,13 @@ class LoopDittyFrame(wx.Frame):
 		playButton = wx.Button(self, -1, "Play")
 		self.Bind(wx.EVT_BUTTON, self.glcanvas.startAnimation, playButton)
 		animatePanel.Add(playButton, 0, wx.EXPAND)
+		
 		#Checkbox for edge toggle
 		self.EdgesToggleCheckbox = wx.CheckBox(self, label="Display Edges")
 		self.EdgesToggleCheckbox.SetValue(True)
 		self.EdgesToggleCheckbox.Bind(wx.EVT_CHECKBOX, self.ToggleDisplayEdges)
 		animatePanel.Add(self.EdgesToggleCheckbox)
+		
 		#Checkboxes for CAF subsets
 		self.TimbreCheckbox = wx.CheckBox(self, label="Timbre")
 		self.TimbreCheckbox.SetValue(True)
@@ -459,6 +590,20 @@ class LoopDittyFrame(wx.Frame):
 		self.ChromaCheckbox.SetValue(True)
 		self.ChromaCheckbox.Bind(wx.EVT_CHECKBOX, self.ToggleFeature)
 		animatePanel.Add(self.ChromaCheckbox)
+		
+		#Radio Buttons For Color Type
+		animatePanel.Add(wx.StaticText(self, label = "Color Type"))
+		radioPanel = wx.Panel(self, -1)
+		self.rbColorTypeTime = wx.RadioButton(radioPanel, -1, label='Time', pos=(10, 10), style=wx.RB_GROUP)
+		self.rbColorTypeDensity = wx.RadioButton(radioPanel, -1, label='Density', pos=(10, 30))
+		self.rbColorTypeHKS = wx.RadioButton(radioPanel, -1, label='HKS', pos=(10, 50))
+		self.Bind(wx.EVT_RADIOBUTTON, self.SetColorType, id = self.rbColorTypeTime.GetId())
+		self.Bind(wx.EVT_RADIOBUTTON, self.SetColorType, id = self.rbColorTypeDensity.GetId())
+		self.Bind(wx.EVT_RADIOBUTTON, self.SetColorType, id = self.rbColorTypeHKS.GetId())
+		hboxRadio = wx.BoxSizer(wx.HORIZONTAL)
+		hboxRadio.Add(radioPanel)
+		animatePanel.Add(hboxRadio)
+		
 		#Song Information
 		animatePanel.Add(wx.StaticText(self, label = "Song Information"))
 		hbox0 = wx.BoxSizer(wx.HORIZONTAL)
@@ -550,7 +695,9 @@ class LoopDittyFrame(wx.Frame):
 			self.DelaySeries = self.OrigDelaySeries.copy()
 			self.glcanvas.SampleDelays = self.OrigSampleDelays.copy()
 			self.NumberPointsTxt.SetValue("%i"%len(self.glcanvas.SampleDelays))
-			self.setupPosColorVBO()
+			self.initDensityAndHKSVars()
+			self.setupPosVBO()
+			self.setupColorVBO()
 			self.glcanvas.filename = filepath
 			self.glcanvas.camera.centerOnPoints(self.glcanvas.X)
 			print "Loaded %s"%filename
@@ -623,7 +770,10 @@ class LoopDittyFrame(wx.Frame):
 			plt.show()
 			self.DelaySeries = DelaySeries
 			self.glcanvas.SampleDelays = SampleDelays
-			self.setupPosColorVBO()
+			#TODO: Arc length doesn't necessarily play nice with the setupPosVBO
+			#and setupColorVBO routines
+			self.setupPosVBO()
+			self.setupColorVBO()
 			self.NumberPointsTxt.SetValue("%i"%len(self.glcanvas.SampleDelays))
 		dlg.Destroy()
 
@@ -637,16 +787,7 @@ class LoopDittyFrame(wx.Frame):
 		self.densityNPoints = min(densityDlg.densityNPoints, self.OrigDelaySeries.shape[0])
 		self.lowDensity = densityDlg.lowDensity
 		
-		#Find the first "densityNPoints" points in ascending order of max neighborhood point
-		if len(self.D) == 0:
-			tic = time.time()
-			self.D = spatial.distance_matrix(self.OrigDelaySeries, self.OrigDelaySeries)
-			toc = time.time()
-			print "Elapsed distance matrix computation time = %g"%(toc - tic)
-			tic = time.time()
-			self.DSorted = np.sort(self.D, 0)
-			toc = time.time()
-			print "Elapsed sorting time = %g"%(toc - tic)
+		self.getDSorted()
 		D = self.DSorted[self.densityNeighbors, :]
 		mask = np.argsort(D.flatten())
 		if self.lowDensity:
@@ -655,10 +796,34 @@ class LoopDittyFrame(wx.Frame):
 			mask = mask[0:self.densityNPoints]
 		mask = np.sort(mask)
 		self.DelaySeries = self.OrigDelaySeries
+		self.DelaySeriesMask = mask
 		self.glcanvas.SampleDelays = self.OrigSampleDelays[mask]
-		self.setupPosColorVBOMask(mask)
-		self.NumberPointsTxt.SetValue("%i"%len(self.glcanvas.SampleDelays))		
-		
+		self.setupPosVBOMask(mask)
+		self.setupColorVBOMask(mask)
+		self.NumberPointsTxt.SetValue("%i"%len(self.glcanvas.SampleDelays))
+	
+	#Radio button callback
+	def SetColorType(self, evt):
+		if self.rbColorTypeTime.GetValue():
+			self.colorType = LoopDittyFrame.COLORTYPE_TIME
+		elif self.rbColorTypeDensity.GetValue():
+			self.colorType = LoopDittyFrame.COLORTYPE_DENSITY
+			dlg = wx.TextEntryDialog(None,'Number of Neighbors','Number of Neighbors', "%s"%self.densityNeighbors)
+			if dlg.ShowModal() == wx.ID_OK:
+				self.densityNeighbors = dlg.GetValue()
+			dlg.Destroy()
+		elif self.rbColorTypeHKS.GetValue():
+			self.colorType = LoopDittyFrame.COLORTYPE_HKS
+			hksDlg = HKSDialog(self)
+			hksDlg.ShowModal()
+			hksDlg.Destroy()
+			self.hksNEigs = hksDlg.hksNEigs
+			self.hksTime = hksDlg.hksTime
+		if len(self.DelaySeriesMask) > 0:
+			self.setupColorVBOMask(self.DelaySeriesMask)
+		else:
+			self.setupColorVBO()
+
 	def OnExit(self, evt):
 		self.Close(True)
 		return
