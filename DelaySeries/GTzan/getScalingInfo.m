@@ -1,4 +1,4 @@
-function [mins, maxs, vars] = getScalingInfo(indices)
+function [] = getScalingInfo(indices)
     addpath('genres');
     addpath('..');
     addpath('../chroma-ansyn');
@@ -20,4 +20,6 @@ function [mins, maxs, vars] = getScalingInfo(indices)
     mins = min(X, [], 1);
     maxs = max(X, [], 1);
     vars = var(X, 1);
+    means = mean(X, 1);
+    save('ScalingInfo.mat', 'mins', 'maxs', 'vars', 'means');
 end
