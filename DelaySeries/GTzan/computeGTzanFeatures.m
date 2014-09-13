@@ -3,7 +3,7 @@
 %Tzanetakis 2002 dataset
 %indices: The indices of the genres to compute (Useful to run this file
 %on different cores with different indices to parallelize computation)
-function [] = getGTzanFeatures(indices, SongsPerGenre, subsample, foldername)
+function [] = computeGTzanFeatures(indices, SongsPerGenre, subsample, foldername)
     addpath('genres');
     addpath('..');
     addpath('../chroma-ansyn');
@@ -11,10 +11,7 @@ function [] = getGTzanFeatures(indices, SongsPerGenre, subsample, foldername)
     genres = {'blues', 'classical', 'country', 'disco', 'hiphop', 'jazz', 'metal', 'pop', 'reggae', 'rock'};
     hopSize = 512;
     NWin = 43;
-    featuresOrig = {};
-    featuresTDA = {};
-    AllPDs1 = {};
-    AllPDS0 = {};
+    
     if nargin < 3
         subsample = 1;
     end
@@ -33,18 +30,14 @@ function [] = getGTzanFeatures(indices, SongsPerGenre, subsample, foldername)
     for ii = 1:length(indices)
        genre = genres{indices(ii)};
        fprintf(1, 'Doing %s...\n', genre);
-       X = [];
-       XTDA = [];
-       PDs1 = {};
-       PDs0 = {};
-       for jj = 1:SongsPerGenre
+       X = zeros(SongsPerGenre, 59*2);
+       PDs1 = cell(SongsPerGenre);
+       PDs0 = cell(SongsPerGenre);
+       parfor jj = 1:SongsPerGenre
            filename = sprintf('genres/%s/%s.%.5i.au', genre, genre, jj-1);
-           [DelaySeries, ~, ~, FeatureNames] = getDelaySeriesFeatures(filename, hopSize, 1, NWin);
+           DelaySeries = getDelaySeriesFeatures(filename, hopSize, 1, NWin);
            %Save the mean and variance of all features to "featuresOrig"
-           thisX = [mean(DelaySeries, 1) var(DelaySeries, 1)];
-           if isempty(X)
-              X = zeros(jj, length(thisX)); 
-           end
+           thisX = [mean(DelaySeries, 1) sqrt(var(DelaySeries, 1))];
            X(jj, :) = thisX;
            %Now scale the delay series by the precomputed mean and standard
            %deviation
@@ -52,21 +45,13 @@ function [] = getGTzanFeatures(indices, SongsPerGenre, subsample, foldername)
            DelaySeries = bsxfun(@times, DelaySeries, 1./ScaleSTDevs);
            %Do DGM1 separately for timbre, MFCC, and chroma
            %Subsample the point clouds by a factor of 2
-           [thisXTDATimbre, timbrePD1, timbrePD0] = getPD1Sorted(DelaySeries(1:subsample:end, timbreIndices));
-           [thisXTDAMFCC, MFCCPD1, MFCCPD0] = getPD1Sorted(DelaySeries(1:subsample:end, MFCCIndices));
-           [thisXTDAChroma, ChromaPD1, ChromaPD0] = getPD1Sorted(DelaySeries(1:subsample:end, ChromaIndices));
-           if (isempty(XTDA))
-              XTDA = zeros(SongsPerGenre, length(thisXTDATimbre)*3); 
-           end
-           XTDA(jj, :) = [thisXTDATimbre thisXTDAMFCC thisXTDAChroma];
+           [timbrePD1, timbrePD0] = getPersistenceDiagrams(DelaySeries(1:subsample:end, timbreIndices));
+           [MFCCPD1, MFCCPD0] = getPersistenceDiagrams(DelaySeries(1:subsample:end, MFCCIndices));
+           [ChromaPD1, ChromaPD0] = getPersistenceDiagrams(DelaySeries(1:subsample:end, ChromaIndices));
            fprintf(1, 'Finished %s %i\n', genre, jj);
-           PDs1{end+1} = {timbrePD1, MFCCPD1, ChromaPD1};
-           PDs0{end+1} = {timbrePD0, MFCCPD0, ChromaPD0};
+           PDs1{jj} = {timbrePD1, MFCCPD1, ChromaPD1};
+           PDs0{jj} = {timbrePD0, MFCCPD0, ChromaPD0};
        end
-       featuresOrig{ii} = X;
-       featuresTDA{ii} = XTDA;
-       AllPDs1{ii} = PDs1;
-       AllPDs0{ii} = PDs0;
-       save(sprintf('%s/GTzanFeatures%i.mat', foldername, indices(ii)), 'X', 'XTDA', 'PDs1', 'PDs0', 'genres', 'FeatureNames');
+       save(sprintf('%s/GTzanFeatures%i.mat', foldername, indices(ii)), 'X', 'PDs1', 'PDs0', 'genres');
     end
 end
