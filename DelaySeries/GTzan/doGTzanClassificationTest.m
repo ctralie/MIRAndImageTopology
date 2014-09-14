@@ -71,20 +71,28 @@ function [CCAF, CTDA, CBOTH] = doGTzanClassificationTest(fOrig, fTDA, genresToUs
         %those principal components to the testing and training set
         trainTDAProj = [];
         testTDAProj = [];
-        for kk = 0:2
-            indices = 1:kTDA + kk*kTDA;
-            thisfTDATrain = fTDATrain(:, indices);
-            thisfTDATest = fTDATest(:, indices);
-            PCATDA = pca(thisfTDATrain);
-            PCATDA = PCATDA(:, 1:NPrC);
-            %Center the features on their centroids
-            thisfTDATrain = thisfTDATrain - repmat(mean(thisfTDATrain, 1), [size(thisfTDATrain, 1), 1]);
-            thisfTDATest = thisfTDATest - repmat(mean(thisfTDATest, 1), [size(thisfTDATest, 1), 1]);
-            %Project onto principal components
-            trainTDAProj = [trainTDAProj (PCATDA'*thisfTDATrain')'];
-            testTDAProj = [testTDAProj (PCATDA'*thisfTDATest')'];
+        if NPrC > 0
+            for kk = 0:2
+                indices = (1:kTDA) + kk*kTDA;
+                thisfTDATrain = fTDATrain(:, indices);
+                thisfTDATest = fTDATest(:, indices);
+                %Center the features on their centroids
+                thisfTDATrain = thisfTDATrain - repmat(mean(thisfTDATrain, 1), [size(thisfTDATrain, 1), 1]);
+                thisfTDATest = thisfTDATest - repmat(mean(thisfTDATest, 1), [size(thisfTDATest, 1), 1]);
+                %Do PCA
+                D = thisfTDATrain'*thisfTDATrain;
+                [PCATDA, ~] = eigs(D, NPrC);
+                %Project onto principal components
+                trainTDAProj = [trainTDAProj thisfTDATrain*PCATDA];
+                testTDAProj = [testTDAProj thisfTDATest*PCATDA];
+            end
+        else
+            %If the number principal components specified is 0
+            %use the original feature space
+            trainTDAProj = fTDATrain;
+            testTDAProj = fTDATest;
         end
-
+        
         %Step 4: Scale the PCA TDA features so they lie in the range [0, 1]
         minOrig = min(trainTDAProj);
         trainTDAProj = bsxfun(@minus, trainTDAProj, minOrig);
@@ -104,7 +112,7 @@ function [CCAF, CTDA, CBOTH] = doGTzanClassificationTest(fOrig, fTDA, genresToUs
                 XTrain=  trainTDAProj;
                 XTest = testTDAProj;
             elseif useTDA == 2
-                %BOth
+                %Both
                 XTrain = [fOrigTrain trainTDAProj];
                 XTest = [fOrigTest testTDAProj];
             end
