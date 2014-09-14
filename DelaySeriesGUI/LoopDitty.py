@@ -128,7 +128,6 @@ class DelaySeriesParamsDialog(wx.Dialog):
 		self.windowSize = int(self.windowSize.GetValue())
 		self.Destroy()
 
-
 class DensityThresholdDialog(wx.Dialog):
 	def __init__(self, *args, **kw):
 		super(DensityThresholdDialog, self).__init__(*args, **kw)
@@ -139,7 +138,6 @@ class DensityThresholdDialog(wx.Dialog):
 		self.InitUI()
 		self.SetSize((250, 200))
 		self.SetTitle("Density Thresholding Parameters")
-
 
 	def InitUI(self):
 		pnl = wx.Panel(self)
@@ -475,7 +473,7 @@ class LoopDittyFrame(wx.Frame):
 			self.glcanvas.XColors = cmConvert(np.linspace(0, 1, self.DelaySeries.shape[0] ))[:, 0:3]
 		elif self.colorType == LoopDittyFrame.COLORTYPE_DENSITY:
 			self.getDSorted()
-			density = self.DSorted[self.densityNeighbors, :].flatten()
+			density = np.mean(self.DSorted[1:self.densityNeighbors+1, :], 0).flatten()
 			density = density/np.max(density)
 			density = 1 - density #Close near neighbors implies high density
 			density = density #Stretch out color range
@@ -788,7 +786,8 @@ class LoopDittyFrame(wx.Frame):
 		self.lowDensity = densityDlg.lowDensity
 		
 		self.getDSorted()
-		D = self.DSorted[self.densityNeighbors, :]
+		D = np.exp(self.DSorted[1:self.densityNeighbors+1, :])
+		D = np.mean(D, 0)
 		mask = np.argsort(D.flatten())
 		if self.lowDensity:
 			mask = mask[-self.densityNPoints:]
@@ -810,7 +809,7 @@ class LoopDittyFrame(wx.Frame):
 			self.colorType = LoopDittyFrame.COLORTYPE_DENSITY
 			dlg = wx.TextEntryDialog(None,'Number of Neighbors','Number of Neighbors', "%s"%self.densityNeighbors)
 			if dlg.ShowModal() == wx.ID_OK:
-				self.densityNeighbors = dlg.GetValue()
+				self.densityNeighbors = int(dlg.GetValue())
 			dlg.Destroy()
 		elif self.rbColorTypeHKS.GetValue():
 			self.colorType = LoopDittyFrame.COLORTYPE_HKS

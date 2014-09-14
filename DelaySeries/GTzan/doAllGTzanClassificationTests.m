@@ -5,7 +5,7 @@
 %saved diagrams
 load('GTzanFeatures');
 fOrig = cell2mat(featuresOrig');
-fTDA = getSortedBars(AllPDs1, 1, 50);
+fTDA = getSortedBars(AllPDs1, 1, 100);
 
 SongsPerGenre = 100;
 
@@ -13,7 +13,7 @@ genres = load('GTzanFeatures');
 genres = genres.genres;
 genresToTake = 1:10;
 N = length(genresToTake);
-NPrC = 10;
+NPrC = 5;
 NNeighb = 5;
 
 %With TDA
