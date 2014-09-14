@@ -1,12 +1,15 @@
 %Programmer: Chris Tralie
 %Purpose: To make confusion matrix plots with and without TDA features
 
+NPrC = 5;
+NNeighb = 5;
+
 %Step 1: Load the CAF features and compute the TDA features from the
 %saved diagrams
-load('GTzanFeatures');
+load('ScaledTheSamePredetermined/GTzanFeatures');
 fOrig = cell2mat(featuresOrig');
-%fTDA = getSortedBars(AllPDs1, 1, 100);
-fTDA = getAlgebraicFunctionsOnBars(AllPDs1);
+fTDA = getSortedBars(AllPDs1, 1, 100);
+%fTDA = getAlgebraicFunctionsOnBars(AllPDs1);
 
 SongsPerGenre = 100;
 
@@ -14,8 +17,7 @@ genres = load('GTzanFeatures');
 genres = genres.genres;
 genresToTake = 1:10;
 N = length(genresToTake);
-NPrC = 0;
-NNeighb = 5;
+
 
 %With TDA
 subplot(2, 2, 1);

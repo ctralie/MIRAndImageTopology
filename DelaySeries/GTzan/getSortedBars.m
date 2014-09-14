@@ -4,7 +4,10 @@
 %Inputs:
 %startbar: index of the bar to start in the sorted order
 %endbar: index of the bar to end in the sorted order
-function [fTDA] = getSortedBars( AllPDs, startbar, endbar )
+function [fTDA] = getSortedBars( AllPDs, startbar, endbar, NPrC )
+    if nargin < 4
+        NPrC = 0;
+    end
     NBars = endbar - startbar + 1;
     N = length(AllPDs)*length(AllPDs{1});
     fTDA = zeros(N, 3*2*NBars);
@@ -28,5 +31,14 @@ function [fTDA] = getSortedBars( AllPDs, startbar, endbar )
            end
            index = index + 1;
         end
+    end
+    if NPrC > 0
+       fTDAPCA = [];
+       for kk = 0:2
+           idx = (1:2*NBars) + kk*2*NBars;
+           Y = cmdscale(squareform(pdist(fTDA(:, idx))));
+           fTDAPCA = [fTDAPCA Y(:, 1:NPrC)];
+       end
+       fTDA = fTDAPCA;
     end
 end
