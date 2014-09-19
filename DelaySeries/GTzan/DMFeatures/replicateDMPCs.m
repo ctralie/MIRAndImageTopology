@@ -7,7 +7,8 @@ DGMs1Timbre = zeros(length(files), 200);
 DGMs1MFCC = zeros(length(files), 200);
 DGMs1Chroma = zeros(length(files), 200);
 
-for ii = 1:length(files)
+parfor ii = 1:length(files)
+    files{ii}
     song = load(files{ii});
     song = song.songsDiagram;
     songs{ii} = song;
@@ -20,8 +21,12 @@ end
 [MFCCPCs, MFCCPCA] = pca(DGMs1MFCC);
 [ChromaPCs, ChromaPCA] = pca(DGMs1Chroma);
 
+TimbrePCA = DGMs1Timbre*TimbrePCs;
+MFCCPCA = DGMs1MFCC*MFCCPCs;
+ChromaPCA = DGMs1Chroma*ChromaPCs;
+
 for ii = 1:length(songs)
-   songs{ii}.principalComp200I1Timbre_Chris = TimbrePCA(ii, 1:5);
-   songs{ii}.principalComp200I1MFCC_Chris = MFCCPCA(ii, 1:5);
-   songs{ii}.principalComp200I1Chroma_Chris = ChromaPCA(ii, 1:5);
+   songs{ii}.principalComp200I1Timbre_Chris = (TimbrePCA(ii, 1:5) - mean(TimbrePCA(:, 1:5), 1))./std(TimbrePCA(:, 1:5), 1);
+   songs{ii}.principalComp200I1MFCC_Chris = (MFCCPCA(ii, 1:5) - mean(MFCCPCA(:, 1:5), 1))./std(MFCCPCA(:, 1:5), 1);
+   songs{ii}.principalComp200I1Chroma_Chris = (ChromaPCA(ii, 1:5) - mean(ChromaPCA(:, 1:5), 1))./std(ChromaPCA(:), 1);
 end

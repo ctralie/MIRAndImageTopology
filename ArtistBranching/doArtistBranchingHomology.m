@@ -1,5 +1,6 @@
 if exist('artistData.mat') == 0
     addpath('../GenrePersistence');
+    addpath('../0DFiltrations');
     artistNames = {'Beatles', 'Eminem', 'Prince', 'Ramones', 'SeanPaul', 'Yes', 'Future', 'GratefulDead', 'Kesha', 'OwlCity'};
     artistData = {};
     %Load in data
