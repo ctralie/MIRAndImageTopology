@@ -9,6 +9,8 @@
 %genresToUse: Indexes corresponding to the genres to use in this test
 %SongsPerGenre: The number of songs per genre
 %NNeighb: Number of neighbors to use in nearest neighbor classification
+%randShuffle: Seed for the random number generated used to shuffle before
+%cross-validation
 
 %Returns:
 %CCAF: Confusion matrix for CAF only
@@ -16,7 +18,7 @@
 %CDGM1: Confusion matrix for DMG1 only
 %CDGM01: Confusion matrix for DGM0 and DGM1
 %CALL: Confusion matrix for all features
-function [CCAF, CDGM0, CDGM1, CDGM01, CALL] = doGTzanClassificationTest(fOrig, fDGM0, fDGM1, genresToUse, SongsPerGenre, NNeighb)
+function [CCAF, CDGM0, CDGM1, CDGM01, CALL] = doGTzanClassificationTest(fOrig, fDGM0, fDGM1, genresToUse, SongsPerGenre, NNeighb, randSeed)
     %Pick the genres that should take place in this classification task
     NGenres = length(genresToUse);
     idx1 = repmat(1:SongsPerGenre, [NGenres, 1])';
@@ -38,14 +40,15 @@ function [CCAF, CDGM0, CDGM1, CDGM01, CALL] = doGTzanClassificationTest(fOrig, f
     featuresIdx = [timbreIndices MFCCIndices ChromaIndices];
     
     %Shuffle songs
+    s = RandStream('mcg16807', 'Seed', randSeed);
     idx = [];
     for ii = 0:SongsPerGenre:NGenres*SongsPerGenre-1
-        idx = [idx (ii + randperm(SongsPerGenre))];
+        idx = [idx (ii + s.randperm(SongsPerGenre))];
     end
     fOrig = fOrig(idx, :);
     fDGM0 = fDGM0(idx, :);
     fDGM1 = fDGM1(idx, :);
-
+        
     %Do 10-fold cross-validation
     for ii = 0:SongsPerGenre/10:SongsPerGenre-1
         %Step 1: Select the disjoint training and test sets

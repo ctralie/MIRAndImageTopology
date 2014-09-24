@@ -23,10 +23,13 @@ function [] = computeGTzanFeatures(indices, SongsPerGenre, subsample, foldername
     MFCCIndices = [5:9 34:38];
     ChromaIndices = [18:29 47:58];
 
-    ScalingInfo = load('ScalingInfo');
-    ScaleMeans = ScalingInfo.means;
-    ScaleSTDevs = sqrt(ScalingInfo.vars);
+%     ScalingInfo = load('ScalingInfo');
+%     ScaleMeans = ScalingInfo.means;
+%     ScaleSTDevs = sqrt(ScalingInfo.vars);
     
+    AllPDs0 = cell(1, length(indices));
+    AllPDs1 = cell(1, length(indices));
+    featuresOrig = cell(1, length(indices));
     for ii = 1:length(indices)
        genre = genres{indices(ii)};
        fprintf(1, 'Doing %s...\n', genre);
@@ -39,8 +42,10 @@ function [] = computeGTzanFeatures(indices, SongsPerGenre, subsample, foldername
            %Save the mean and variance of all features to "featuresOrig"
            thisX = [mean(DelaySeries, 1) sqrt(var(DelaySeries, 1))];
            X(jj, :) = thisX;
-           %Now scale the delay series by the precomputed mean and standard
-           %deviation
+           %Now scale the delay series by the mean and standard deviation
+           %in this song
+           ScaleMeans = mean(DelaySeries, 1);
+           ScaleSTDevs = std(DelaySeries);
            DelaySeries = bsxfun(@minus, DelaySeries, ScaleMeans);
            DelaySeries = bsxfun(@times, DelaySeries, 1./ScaleSTDevs);
            %Do DGM1 separately for timbre, MFCC, and chroma
@@ -54,4 +59,5 @@ function [] = computeGTzanFeatures(indices, SongsPerGenre, subsample, foldername
        end
        save(sprintf('%s/GTzanFeatures%i.mat', foldername, indices(ii)), 'X', 'PDs1', 'PDs0', 'genres');
     end
+    save(sprintf('%s/GTzanFeatures.mat', foldername), 'AllPDs0', 'AllPDs1', 'featuresOrig', 'genres');
 end
