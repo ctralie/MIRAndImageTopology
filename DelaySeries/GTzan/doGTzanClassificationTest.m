@@ -26,6 +26,11 @@ function [CCAF, CDGM0, CDGM1, CDGM01, CALL] = doGTzanClassificationTest(fOrig, f
     idx = idx1(:) + idx2(:);
     fOrig = fOrig(idx, :);
     fDGM0 = fDGM0(idx, :);
+    fDGM1 = fDGM1(idx, :);
+    %Scale the feature sets
+    fOrig = MuStdCenter(fOrig);
+    fDGM0 = MuStdCenter(fDGM0);
+    fDGM1 = MuStdCenter(fDGM1);
     
     CCAF = zeros(NGenres, NGenres);
     CDGM0 = zeros(NGenres, NGenres);
@@ -66,32 +71,7 @@ function [CCAF, CDGM0, CDGM1, CDGM01, CALL] = doGTzanClassificationTest(fOrig, f
         fDGM0Test = fDGM0(testIdx, :);
         fDGM1Test = fDGM1(testIdx, :);
 
-        %Step 2: Scale the CAF features for the training set so they each lie
-        %in the range [0, 1]
-        minOrig = min(fOrigTrain);
-        fOrigTrain = bsxfun(@minus, fOrigTrain, minOrig);
-        maxOrig = max(fOrigTrain);
-        fOrigTrain = bsxfun(@times, fOrigTrain, 1./(maxOrig+eps));
-        %Use the same weights to scale the test set
-        fOrigTest = bsxfun(@minus, fOrigTest, minOrig);
-        fOrigTest = bsxfun(@times, fOrigTest, 1./(maxOrig+eps));
-        
-        %Step 3: Scale the TDA features so they lie in the range [0, 1]
-        minOrig = min(fDGM0Train);
-        fDGM0Train = bsxfun(@minus, fDGM0Train, minOrig);
-        maxOrig = max(fDGM0Train);
-        fDGM0Train = bsxfun(@times, fDGM0Train, 1./(maxOrig+eps));
-        fDGM0Test = bsxfun(@minus, fDGM0Test, minOrig);
-        fDGM0Test = bsxfun(@times, fDGM0Test, 1./(maxOrig + eps));
-        
-        minOrig = min(fDGM1Train);
-        fDGM1Train = bsxfun(@minus, fDGM1Train, minOrig);
-        maxOrig = max(fDGM1Train);
-        fDGM1Train = bsxfun(@times, fDGM1Train, 1./(maxOrig+eps));
-        fDGM1Test = bsxfun(@minus, fDGM1Test, minOrig);
-        fDGM1Test = bsxfun(@times, fDGM1Test, 1./(maxOrig + eps));
-
-        %Step 4: Put the points into the full concatenated feature space
+        %Step 2: Put the points into the full concatenated feature space
         %and do nearest neighbor.  Try 5 combinations of different groups
         %of features
         for useTDA = 0:4
@@ -120,7 +100,7 @@ function [CCAF, CDGM0, CDGM1, CDGM01, CALL] = doGTzanClassificationTest(fOrig, f
             idx = idx(:, 1:NNeighb);
             idx = ceil(idx/(SongsPerGenre*9.0/10.0));
 
-            %Step 6: Update the confusion matrix
+            %Step 3: Update the confusion matrix
             idxGuessed = mode(idx, 2);
             idxCorrect = repmat(1:NGenres, [SongsPerGenre/10, 1]);
             idxCorrect = idxCorrect(:);

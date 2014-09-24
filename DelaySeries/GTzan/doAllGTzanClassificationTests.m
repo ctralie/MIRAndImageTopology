@@ -6,7 +6,7 @@ NNeighb = 5;
 
 doPCA = 0;
 NPrC = 5;
-NFourier = 6;
+NFourier = 5;
 
 startbar0 = 1;
 endbar0 = 4000;
