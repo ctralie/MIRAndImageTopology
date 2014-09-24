@@ -14,7 +14,7 @@ genresToTake = 1:10;
 
 %Load the CAF features and compute the TDA features from the
 %saved diagrams
-savedFeatures = load('ScaledTheSamePredetermined/GTzanFeatures');
+savedFeatures = load('GTzanFeatures_ScaledSamePredetermined');
 genres = savedFeatures.genres;
 dgms1 = savedFeatures.AllPDs1;%1D persistence diagrams
 fOrig = cell2mat(savedFeatures.featuresOrig');%CAF Features
