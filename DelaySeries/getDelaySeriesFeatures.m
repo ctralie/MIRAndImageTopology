@@ -18,6 +18,7 @@ function [DelaySeries, Fs, SampleDelays, FeatureNames] = getDelaySeriesFeatures(
     addpath('chroma-ansyn');
     addpath('rastamat');
     readSuccess = 0;
+    verbose = 0;
     %Prevents the mandlebug where matlab's audio read randomly fails
     while readSuccess == 0
         try
@@ -39,7 +40,9 @@ function [DelaySeries, Fs, SampleDelays, FeatureNames] = getDelaySeriesFeatures(
     end
     
     %Compute timbral features based on spectrogram
-    disp('Calculating spectrogram timbral features....');
+    if verbose == 1
+        disp('Calculating spectrogram timbral features....');
+    end
     S = spectrogram(X, hopSize, 0);
     S = abs(S);
     NSpectrumSamples = size(S, 1);
@@ -69,18 +72,24 @@ function [DelaySeries, Fs, SampleDelays, FeatureNames] = getDelaySeriesFeatures(
     end
     
     %Use Dan Ellis's MFCC code
-    disp('Calculating MFCC features....');
+    if verbose == 1
+        disp('Calculating MFCC features....');
+    end
     winSizeSec = hopSize/Fs;
     MFCC = melfcc(X, Fs, 'maxfreq', 8000, 'numcep', 13, 'nbands', 40, 'fbtype', 'fcmel', 'dcttype', 1, 'usecmp', 1, 'wintime', winSizeSec, 'hoptime', winSizeSec, 'preemph', 0, 'dither', 1);
 
     %Use Dan Ellis's Chroma code
-    disp('Calculating chroma features....');
+    if verbose == 1
+        disp('Calculating chroma features....');
+    end
     Chroma = chromagram_IF(X, Fs, hopSize*4);
     %For some reason the chroma features are one index off
     Chroma = [Chroma zeros(size(Chroma, 1), 1)];    
     
     %Now compute delay series
-    disp('Calculating delay series....');
+    if verbose == 1
+        disp('Calculating delay series....');
+    end
     %The last 1 is for low energy feature
     NFeatures = 2*(size(Centroid, 1) + size(Roloff, 1) + size(Flux, 1) + size(ZeroCrossings, 1) + size(MFCC, 1) + size(Chroma, 1)) + 1;
     if windowSize == 1
@@ -143,7 +152,7 @@ function [DelaySeries, Fs, SampleDelays, FeatureNames] = getDelaySeriesFeatures(
             ZeroEnergy = sum(AnalysisRMSE(i1:i2) < TextureRMSE);
             DelaySeries(off, :) = [MeanStacked; STDStacked; ZeroEnergy];
         end
-        if mod(off, 100) == 0
+        if verbose == 1 && mod(off, 100) == 0
            fprintf(1, 'Finished %i of %i\n', off, NDelays); 
         end
     end

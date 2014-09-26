@@ -2,6 +2,7 @@ addpath('genres');
 addpath('..');
 addpath('../chroma-ansyn');
 addpath('../rastamat');
+addpath('../../0DFiltrations');
 genres = {'blues', 'classical', 'country', 'disco', 'hiphop', 'jazz', 'metal', 'pop', 'reggae', 'rock'};
 hopSize = 512;
 NWin = 43;
