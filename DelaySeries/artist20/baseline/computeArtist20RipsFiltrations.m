@@ -1,10 +1,8 @@
 %Compute 0D and 1D rips filtrations based on subsampled MFCCs averaged
 %in 10 second windows
 windowSize = 10;
-DownsampleFac = 15;
-filename = 'Artist20MorseDiagrams.mat';
-
-addpath('../../../0DFiltrations');
+subsample = 15;
+filename = 'Artist20RipsDiagrams.mat';
 
 trainset = '../lists/a20-trn-tracks.list';
 testset = '../lists/a20-val-tracks.list';
@@ -28,11 +26,13 @@ TrainPDs1BK = cell(NTrain, 1);
 trainArtists = zeros(NTrain, 1);
 
 parfor ii = 1:NTrain
-   Y = getSongPointCloud(trainFiles{ii}, windowSize);
+    javaclasspath('jars/tda.jar');
+    import api.*;
+   tda = Tda();
+   Y = getSongPointCloud(trainFiles{ii}, windowSize, subsample);
    trainArtists(ii) = artistMap.get(trainArtistNames{ii});
    
-   [PD0, PD1, PD1BK] = getPersistenceDiagrams(Y(1:DownsampleFac:end, :));
-
+   [PD0, PD1, PD1BK] = getPersistenceDiagrams(Y, tda);
    TrainPDs0{ii} = PD0;
    TrainPDs1{ii} = PD1;
    TrainPDs1BK{ii} = PD1BK;
@@ -46,11 +46,14 @@ TestPDs1BK = cell(NTest, 1);
 testArtists = zeros(NTest, 1);
 
 parfor ii = 1:NTest
-   Y = getSongPointCloud(testFiles{ii}, windowSize);
+    javaclasspath('jars/tda.jar');
+    import api.*;
+   tda = Tda();
+   Y = getSongPointCloud(testFiles{ii}, windowSize, subsample);
    testArtists(ii) = artistMap.get(testArtistNames{ii});
    
-   [PD0, PD1, PD1BK] = getPersistenceDiagrams(Y(1:DownsampleFac:end, :));
-
+   [PD0, PD1, PD1BK] = getPersistenceDiagrams(Y, tda);
+   
    TestPDs0{ii} = PD0;
    TestPDs1{ii} = PD1;
    TestPDs1BK{ii} = PD1BK;
@@ -59,4 +62,4 @@ end
 
 
 save(filename, 'artistNames', 'TrainPDs0', 'TrainPDs1', 'TrainPDs1BK',  ...
-    'trainArtists', 'TestPDs0', 'TestPDs1', 'TestPDs1BK', 'testArtists', 'windowSize', 'DownsampleFac');
+    'trainArtists', 'TestPDs0', 'TestPDs1', 'TestPDs1BK', 'testArtists', 'windowSize', 'subsample');

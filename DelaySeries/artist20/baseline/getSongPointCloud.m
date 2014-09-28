@@ -1,8 +1,10 @@
 %windowSize: Window size in seconds
-function [Y] = getSongPointCloud( song, windowSize )
+function [Y] = getSongPointCloud( song, windowSize, subsample )
     MFCCSAMPLELEN = 0.016;
 
-    MFCC = readhtk(sprintf('../mfccs/%s.htk', song));
+    filename = sprintf('../mfccs/%s.htk', song);
+    MFCC = readhtk(filename);
+
     %TODO: Incorporate chroma later
 %     Chroma = load(sprintf('../chromaftrs/%s.mat', song));
 %     ChromaX = Chroma.F';
@@ -19,4 +21,7 @@ function [Y] = getSongPointCloud( song, windowSize )
     end
     Y = bsxfun(@minus, mean(Y), Y);
     Y = bsxfun(@times, 1./std(Y), Y);
+    Y = Y(1:subsample:end, :);
+    
+    fprintf(1, 'Read %s, size %i\n', filename, size(Y, 1));    
 end

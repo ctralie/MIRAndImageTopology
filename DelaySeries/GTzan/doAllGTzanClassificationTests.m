@@ -21,7 +21,8 @@ randSeed = 100;%Change this to change the permutation order used before
 
 %Load the CAF features and compute the TDA features from the
 %saved diagrams
-savedFeatures = load('GTzanFeatures_ScaledSamePredetermined');
+%savedFeatures = load('GTzanFeatures_ScaledSamePredetermined');
+savedFeatures = load('GTzanFeatures_ScaledBySong');
 genres = savedFeatures.genres;
 dgms1 = savedFeatures.AllPDs1;%1D persistence diagrams
 fOrig = cell2mat(savedFeatures.featuresOrig');%CAF Features

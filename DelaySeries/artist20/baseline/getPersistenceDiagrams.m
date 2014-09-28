@@ -2,10 +2,7 @@
 %Purpose: A wrapper function around John's RCA1 code
 %Returns: I: 0D persistence diagram, J: 1D Persistence Diagram
 %JBK: Birth and Death edges for 1D persistence diagram
-function [ I, J, JBK ] = getPersistenceDiagrams( X )
-    javaclasspath('jars/tda.jar');
-    import api.*;
-    tda = Tda();
+function [ I, J, JBK ] = getPersistenceDiagrams( X, tda )
     D = squareform(pdist(X));
     N = size(D, 1);
     maxEdgeLength = max(D(:));
