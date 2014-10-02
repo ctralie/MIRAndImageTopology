@@ -69,7 +69,7 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 		#Camera state variables
 		self.size = self.GetClientSize()
 		self.camera = MousePolarCamera(self.size.width, self.size.height)
-		
+		self.Fs = 22050
 		
 		#Main state variables
 		self.MousePos = [0, 0]
@@ -129,6 +129,9 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 			print "Playing %s"%self.filename
 			self.Playing = True
 			self.PlayIDX = 0
+			pygame.mixer.quit()
+			print "Starting mixer at %i"%self.Fs
+			pygame.mixer.init(frequency = self.Fs)
 			s = pygame.mixer.Sound(self.filename)
 			s.play()
 			self.startTime = time.time()
@@ -224,11 +227,13 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 		self.Refresh()
 
 class LoopDittyFrame(wx.Frame):
-	(ID_LOADSONGFILE, ID_SAVESCREENSHOT, ID_ARCLENGTHDOWNSAMPLE, ID_DENSITYTHRESHOLD, ID_SAVEPOINTCLOUD) = (1, 2, 3, 4, 5)
+	(ID_LOADSONGFILE, ID_LOADMATFILE, ID_SAVESCREENSHOT, ID_ARCLENGTHDOWNSAMPLE, ID_DENSITYTHRESHOLD, ID_SAVEPOINTCLOUD) = (1, 2, 3, 4, 5, 6)
 	(COLORTYPE_TIME, COLORTYPE_DENSITY, COLORTYPE_HKS) = (1, 2, 3)
 	
 	#Get the indices of the features that are being displayed
 	def getFeaturesIdx(self):
+		if self.externalFile:
+			return np.arange(self.DelaySeries.shape[1])
 		idx = np.array([], dtype = 'int32')
 		if self.TimbreCheckbox.GetValue():
 			idx = np.append(idx, self.TimbreIdx)
@@ -305,9 +310,12 @@ class LoopDittyFrame(wx.Frame):
 		self.setupColorVBOMask(range(self.DelaySeries.shape[0]))
 	
 	def ToggleFeature(self, evt):
-		self.setupPosVBO()
-		self.setupColorVBO()
-		self.glcanvas.Refresh()
+		if not self.externalFile:
+			#Feature groups are meaningless if the delay series
+			#came from an external source
+			self.setupPosVBO()
+			self.setupColorVBO()
+			self.glcanvas.Refresh()
 	
 	def ToggleDisplayEdges(self, evt):
 		self.glcanvas.DrawEdges = self.EdgesToggleCheckbox.GetValue()
@@ -329,7 +337,6 @@ class LoopDittyFrame(wx.Frame):
 		
 		#Sound variables
 		self.soundSamples = np.array([])
-		pygame.mixer.init()
 		self.hopSize = 512
 		self.skipSize = 1
 		self.windowSize = 43
@@ -340,6 +347,9 @@ class LoopDittyFrame(wx.Frame):
 		#Heat kernel signature variables
 		self.hksNEigs = 50
 		self.hksTime = 0.05
+		
+		#Using external file
+		self.externalFile = False
 
 		self.initDensityAndHKSVars()
 		
@@ -354,6 +364,8 @@ class LoopDittyFrame(wx.Frame):
 		filemenu = wx.Menu()
 		menuOpenSong = filemenu.Append(LoopDittyFrame.ID_LOADSONGFILE, "&Load Song File","Load Song File")
 		self.Bind(wx.EVT_MENU, self.OnLoadSongFile, menuOpenSong)
+		menuOpenMatfile = filemenu.Append(LoopDittyFrame.ID_LOADMATFILE, "&Load Mat File","Load Mat File")
+		self.Bind(wx.EVT_MENU, self.OnLoadMatFile, menuOpenMatfile)
 		menuSaveScreenshot = filemenu.Append(LoopDittyFrame.ID_SAVESCREENSHOT, "&Save Screenshot", "Save a screenshot of the GL Canvas")		
 		self.Bind(wx.EVT_MENU, self.OnSaveScreenshot, menuSaveScreenshot)
 		menuSavePointCloud = filemenu.Append(LoopDittyFrame.ID_SAVEPOINTCLOUD, "&Save Point Cloud", "Save the point cloud as a .mat file")
@@ -480,6 +492,7 @@ class LoopDittyFrame(wx.Frame):
 	def OnLoadSongFile(self, evt):
 		dlg = wx.FileDialog(self, "Choose a file", ".", "", "*", wx.OPEN)
 		if dlg.ShowModal() == wx.ID_OK:
+			self.externalFile = False
 			filename = dlg.GetFilename()
 			dirname = dlg.GetDirectory()
 			print "Loading %s...."%filename
@@ -496,7 +509,9 @@ class LoopDittyFrame(wx.Frame):
 				filepath = "temp.wav"
 			s = DelaySeries()
 			Fs, X = wavfile.read(filepath)
+			print "Fs: %i"%Fs
 			self.Fs = Fs
+			self.glcanvas.Fs = Fs
 			self.filename = filename
 			paramsDlg = DelaySeriesParamsDialog(self)
 			paramsDlg.ShowModal()
@@ -505,6 +520,43 @@ class LoopDittyFrame(wx.Frame):
 			#Keep track of the original delay series and sample delays to allow
 			#for arbitrary resampling later
 			self.soundSamples, self.OrigDelaySeries, self.Fs, self.OrigSampleDelays, self.TimbreIdx, self.MFCCIdx, self.ChromaIdx = s.processFile(filepath, self.hopSize, self.skipSize, self.windowSize)
+			self.DelaySeries = self.OrigDelaySeries.copy()
+			self.glcanvas.SampleDelays = self.OrigSampleDelays.copy()
+			self.NumberPointsTxt.SetValue("%i"%len(self.glcanvas.SampleDelays))
+			self.initDensityAndHKSVars()
+			self.setupPosVBO()
+			self.setupColorVBO()
+			self.glcanvas.filename = filepath
+			self.glcanvas.camera.centerOnPoints(self.glcanvas.X)
+			print "Loaded %s"%filename
+			#Update GUI Elements
+			self.songNameTxt.SetValue(filename)
+			self.hopSizeTxt.SetValue("%i (%g s)"%(self.hopSize, self.hopSize/float(self.Fs)))
+			self.skipSizeTxt.SetValue("%i (%g s)"%(self.skipSize, self.skipSize*self.hopSize/float(self.Fs) ))
+			self.windowSizeTxt.SetValue("%i (%g s)"%(self.windowSize, self.windowSize*self.hopSize/float(self.Fs) ))
+			self.sampleRateTxt.SetValue("%i"%self.Fs)
+			self.glcanvas.Refresh()
+		dlg.Destroy()
+		return
+
+	#Load delay series from an external source
+	def OnLoadMatFile(self, evt):
+		dlg = wx.FileDialog(self, "Choose a file", ".", "", "*", wx.OPEN)
+		if dlg.ShowModal() == wx.ID_OK:
+			filename = dlg.GetFilename()
+			dirname = dlg.GetDirectory()
+			print "Loading %s...."%filename
+			filepath = os.path.join(dirname, filename)
+			data = sio.loadmat(filepath)
+			self.Fs = data['Fs'];
+			self.glcanvas.Fs = self.Fs
+			self.filename = filename
+			[self.hopSize, self.skipSize, self.windowSize] = [data['hopSize'], data['skipSize'], data['windowSize']]
+			#Keep track of the original delay series and sample delays to allow
+			#for arbitrary resampling later
+			self.soundSamples = data['soundSamples']
+			self.OrigDelaySeries = data['DelaySeries']
+			self.OrigSampleDelays = data['SampleDelays']
 			self.DelaySeries = self.OrigDelaySeries.copy()
 			self.glcanvas.SampleDelays = self.OrigSampleDelays.copy()
 			self.NumberPointsTxt.SetValue("%i"%len(self.glcanvas.SampleDelays))
