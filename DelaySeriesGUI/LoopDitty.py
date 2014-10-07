@@ -14,6 +14,7 @@ from sys import exit, argv
 import random
 import numpy as np
 import scipy.io as sio
+from scipy.io import wavfile
 import scipy.spatial as spatial
 import scipy.linalg
 from pylab import cm
@@ -160,6 +161,7 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 			if self.Playing:
 				self.endTime = time.time()
 				dT = self.endTime - self.startTime
+				self.TimeTxt.SetValue("%g"%dT)
 				while dT > self.SampleDelays[self.PlayIDX]:
 					self.PlayIDX = self.PlayIDX + 1
 					if self.PlayIDX == NPoints - 1:
@@ -233,6 +235,7 @@ class LoopDittyFrame(wx.Frame):
 	#Get the indices of the features that are being displayed
 	def getFeaturesIdx(self):
 		if self.externalFile:
+			(self.glcanvas.X, self.varExplained) = doPCA(self.DelaySeries)
 			return np.arange(self.DelaySeries.shape[1])
 		idx = np.array([], dtype = 'int32')
 		if self.TimbreCheckbox.GetValue():
@@ -480,6 +483,13 @@ class LoopDittyFrame(wx.Frame):
 		hbox6.Add(self.NumberPointsTxt, flag=wx.LEFT, border=5)
 		animatePanel.Add(hbox6)						
 		
+		hbox7 = wx.BoxSizer(wx.HORIZONTAL)
+		hbox7.Add(wx.StaticText(self, label='Time'))
+		self.glcanvas.TimeTxt = wx.TextCtrl(self)
+		self.glcanvas.TimeTxt.SetValue("0")
+		hbox7.Add(self.glcanvas.TimeTxt, flag=wx.LEFT, border=5)
+		animatePanel.Add(hbox7)				
+		
 		#Finally add the two main panels to the sizer		
 		self.sizer = wx.BoxSizer(wx.HORIZONTAL)
 		self.sizer.Add(self.glcanvas, 2, wx.EXPAND)
@@ -543,6 +553,7 @@ class LoopDittyFrame(wx.Frame):
 	def OnLoadMatFile(self, evt):
 		dlg = wx.FileDialog(self, "Choose a file", ".", "", "*", wx.OPEN)
 		if dlg.ShowModal() == wx.ID_OK:
+			self.externalFile = True
 			filename = dlg.GetFilename()
 			dirname = dlg.GetDirectory()
 			print "Loading %s...."%filename
@@ -551,27 +562,32 @@ class LoopDittyFrame(wx.Frame):
 			self.Fs = data['Fs'];
 			self.glcanvas.Fs = self.Fs
 			self.filename = filename
-			[self.hopSize, self.skipSize, self.windowSize] = [data['hopSize'], data['skipSize'], data['windowSize']]
 			#Keep track of the original delay series and sample delays to allow
 			#for arbitrary resampling later
-			self.soundSamples = data['soundSamples']
+			self.soundSamples = data['soundSamples'].flatten()
 			self.OrigDelaySeries = data['DelaySeries']
-			self.OrigSampleDelays = data['SampleDelays']
+			self.OrigSampleDelays = data['SampleDelays'].flatten()
 			self.DelaySeries = self.OrigDelaySeries.copy()
 			self.glcanvas.SampleDelays = self.OrigSampleDelays.copy()
 			self.NumberPointsTxt.SetValue("%i"%len(self.glcanvas.SampleDelays))
-			self.initDensityAndHKSVars()
 			self.setupPosVBO()
 			self.setupColorVBO()
-			self.glcanvas.filename = filepath
 			self.glcanvas.camera.centerOnPoints(self.glcanvas.X)
 			print "Loaded %s"%filename
+			
+			#Write sound samples to a file (convert to 16-bit first)
+			soundSamples16 = (2.0**15)*self.soundSamples
+			soundSamples16 = np.array(soundSamples16, dtype='int16')
+			wavfile.write("tempExternal.wav", self.Fs, soundSamples16)
+			self.filename = "tempExternal.wav"
+			self.glcanvas.filename = "tempExternal.wav"
+			
 			#Update GUI Elements
 			self.songNameTxt.SetValue(filename)
-			self.hopSizeTxt.SetValue("%i (%g s)"%(self.hopSize, self.hopSize/float(self.Fs)))
-			self.skipSizeTxt.SetValue("%i (%g s)"%(self.skipSize, self.skipSize*self.hopSize/float(self.Fs) ))
-			self.windowSizeTxt.SetValue("%i (%g s)"%(self.windowSize, self.windowSize*self.hopSize/float(self.Fs) ))
-			self.sampleRateTxt.SetValue("%i"%self.Fs)
+			self.hopSizeTxt.SetValue("-1")
+			self.skipSizeTxt.SetValue("-1")
+			self.windowSizeTxt.SetValue("-1")
+			self.sampleRateTxt.SetValue("-1")
 			self.glcanvas.Refresh()
 		dlg.Destroy()
 		return

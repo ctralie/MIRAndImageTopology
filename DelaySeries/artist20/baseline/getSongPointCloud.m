@@ -1,12 +1,12 @@
 %windowSize: Window size in seconds
-function [Y] = getSongPointCloud( song, windowSize, subsample )
+function [Y, MFCCWindowSize] = getSongPointCloud( song, windowSize, subsample )
     MFCCSAMPLELEN = 0.016;
 
     filename = sprintf('../mfccs/%s.htk', song);
     MFCC = readhtk(filename);
 
     %TODO: Incorporate chroma later
-%     Chroma = load(sprintf('../chromaftrs/%s.mat', song));
+%     Chroma = load(sprintf('../chromftrs/%s.mat', song));
 %     ChromaX = Chroma.F';
     MFCCWindowSize = round(windowSize/MFCCSAMPLELEN);%Each MFCC window is 15 milliseconds
 %    p = (size(MFCC, 2) + length(Chroma.bts))*2;
