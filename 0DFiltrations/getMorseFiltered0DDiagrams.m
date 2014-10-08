@@ -1,7 +1,9 @@
-function [ I ] = getMorseFiltered0DDiagrams( X )
-    javaclasspath('jars/tda.jar');
-    import api.*;
-    tda = Tda();
+function [ I ] = getMorseFiltered0DDiagrams( X, tda )
+    if nargin < 2
+        javaclasspath('jars/tda.jar');
+        import api.*;
+        tda = Tda();
+    end
     
     %Perform mean/stdev scaling
     X = bsxfun(@minus, mean(X, 1), X);
