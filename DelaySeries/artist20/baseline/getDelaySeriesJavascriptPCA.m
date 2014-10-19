@@ -18,7 +18,7 @@ function [] = getDelaySeriesJavascriptPCA( song, windowSize, outprefix )
     end
     DelaySeries = bsxfun(@minus, mean(DelaySeries), DelaySeries);
     DelaySeries = bsxfun(@times, 1./std(DelaySeries), DelaySeries);
-    [~, DelaySeries] = pca(DelaySeries);    
+    [~, DelaySeries, latent] = pca(DelaySeries);
     
     SampleDelays = MFCCSAMPLELEN*(0:N-1);
     
@@ -30,5 +30,6 @@ function [] = getDelaySeriesJavascriptPCA( song, windowSize, outprefix )
     for ii = 1:size(DelaySeries, 1)
        fprintf(fout, '%g,%g,%g,%g,', DelaySeries(ii, 1), DelaySeries(ii, 2), DelaySeries(ii, 3), SampleDelays(ii)); 
     end
+    fprintf(fout, '%g', sum(latent(1:3))/sum(latent));%Variance explained
     fclose(fout);
 end
