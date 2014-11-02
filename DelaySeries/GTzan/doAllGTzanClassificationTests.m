@@ -81,49 +81,53 @@ N = length(genresToTake);
 Labels = genres(genresToTake);
 
 %CAF only
-subplot(3, 2, 1);
+figure;
 imagesc(CCAF);
 set(gca, 'YLim', [0 N+1], 'YTick', 1:N, 'YTickLabel', Labels);
 set(gca, 'XLim', [0 N+1], 'XTick', 1:N, 'XTickLabel', Labels);
 title( sprintf('CAF, %g Percent', 100*trace(CCAF)/sum(CCAF(:))) );
 caxis([0, SongsPerGenre]);
 fprintf(1, 'Correct with CAF: %i\n', trace(CCAF));
+print('-dpng', '-r100', 'CCAF.png');
 
 %DGM0 only
-subplot(3, 2, 2);
+figure;
 imagesc(CDGM0);
 set(gca, 'YLim', [0 N+1], 'YTick', 1:N, 'YTickLabel', Labels);
 set(gca, 'XLim', [0 N+1], 'XTick', 1:N, 'XTickLabel', Labels);
 title( sprintf('DGM0, %g Percent', 100*trace(CDGM0)/sum(CDGM0(:))) );
 caxis([0, SongsPerGenre]);
 fprintf(1, 'Correct with DGM0: %i\n', trace(CDGM0));
+print('-dpng', '-r100', 'CGM0.png');
 
 
 %DGM1 only
-subplot(3, 2, 3);
+figure;
 imagesc(CDGM1);
 set(gca, 'YLim', [0 N+1], 'YTick', 1:N, 'YTickLabel', Labels);
 set(gca, 'XLim', [0 N+1], 'XTick', 1:N, 'XTickLabel', Labels);
 title( sprintf('DGM1, %g Percent', 100*trace(CDGM1)/sum(CDGM1(:))) );
 caxis([0, SongsPerGenre]);
 fprintf(1, 'Correct with DGM1: %i\n', trace(CDGM1));
-
+print('-dpng', '-r100', 'CDGM1.png');
 
 %DGM0 and DGM1
-subplot(3, 2, 4);
+figure;
 imagesc(CDGM01);
 set(gca, 'YLim', [0 N+1], 'YTick', 1:N, 'YTickLabel', Labels);
 set(gca, 'XLim', [0 N+1], 'XTick', 1:N, 'XTickLabel', Labels);
 title( sprintf('DGM0 and DGM1, %g Percent', 100*trace(CDGM01)/sum(CDGM01(:))) );
 caxis([0, SongsPerGenre]);
 fprintf(1, 'Correct with DGM0 and DGM1: %i\n', trace(CDGM01));
+print('-dpng', '-r100', 'CDGM01.png');
 
 
 %DGM0 only
-subplot(3, 2, 5);
+figure;
 imagesc(CALL);
 set(gca, 'YLim', [0 N+1], 'YTick', 1:N, 'YTickLabel', Labels);
 set(gca, 'XLim', [0 N+1], 'XTick', 1:N, 'XTickLabel', Labels);
 title( sprintf('All, %g Percent', 100*trace(CALL)/sum(CALL(:))) );
 caxis([0, SongsPerGenre]);
 fprintf(1, 'Correct with All: %i\n', trace(CALL));
+print('-dpng', '-r100', 'CALL.png');
