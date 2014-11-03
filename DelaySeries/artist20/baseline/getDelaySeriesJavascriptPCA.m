@@ -2,7 +2,8 @@
 %windowSize: Window size in seconds
 %fileprefix: The prefix of the output files which will store the sound
 %and the delay series
-function [] = getDelaySeriesJavascriptPCA( song, windowSize, outprefix )
+%indices: Which indices to take
+function [] = getDelaySeriesJavascriptPCA( song, windowSize, outprefix, indices )
     MFCCSAMPLELEN = 0.016;
 
     %Compute MFCC Delay Series
@@ -16,6 +17,10 @@ function [] = getDelaySeriesJavascriptPCA( song, windowSize, outprefix )
         MFCCFeats = [mean(MFCC(idx, :)) std(MFCC(idx, :))];
         DelaySeries(ii, :) = MFCCFeats;
     end
+    if nargin < 4
+        indices = 1:size(DelaySeries, 1);
+    end
+    DelaySeries = DelaySeries(indices, :);
     DelaySeries = bsxfun(@minus, mean(DelaySeries), DelaySeries);
     DelaySeries = bsxfun(@times, 1./std(DelaySeries), DelaySeries);
     [~, DelaySeries, latent] = pca(DelaySeries);
