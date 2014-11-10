@@ -9,7 +9,7 @@ function [Y, MFCCWindowLEN] = getSongPointCloud( song, windowSize, subsample )
     %TODO: Incorporate chroma later
 %     Chroma = load(sprintf('../chromftrs/%s.mat', song));
 %     ChromaX = Chroma.F';
-    MFCCWindowLEN = round(windowSize/MFCCSAMPLELEN);%Each MFCC window is 15 milliseconds
+    MFCCWindowLEN = round(windowSize/MFCCSAMPLELEN);%Each MFCC window is 16 milliseconds
 %    p = (size(MFCC, 2) + length(Chroma.bts))*2;
     p = (size(MFCC, 2))*2;
     N = size(MFCC, 1) - MFCCWindowLEN;

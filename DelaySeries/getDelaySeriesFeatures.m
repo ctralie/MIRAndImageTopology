@@ -5,6 +5,7 @@
 %hopSize*skipSize in between delay series samples
 %windowSize (integer): The number of hopSizes to use for each delay series sample
 %(this is also referred to as the "texture window")
+%NMFCCS: Number of MFCC windows
 %NOTE: A windowSize of 1 skips using a texture window
 
 %RETURNS
@@ -14,7 +15,10 @@
 %SampleDelays: Where each delay sample starts (sample number in the sound
 %file)
 %FeatureNames: A cell array of strings that describe each feature
-function [DelaySeries, Fs, SampleDelays, FeatureNames] = getDelaySeriesFeatures( filename, hopSize, skipSize, windowSize )
+function [DelaySeries, Fs, SampleDelays, FeatureNames] = getDelaySeriesFeatures( filename, hopSize, skipSize, windowSize, NMFCCs )
+	if nargin < 5
+		NMFCCs = 13;
+	end
     addpath('chroma-ansyn');
     addpath('rastamat');
     readSuccess = 0;
@@ -76,7 +80,7 @@ function [DelaySeries, Fs, SampleDelays, FeatureNames] = getDelaySeriesFeatures(
         disp('Calculating MFCC features....');
     end
     winSizeSec = hopSize/Fs;
-    MFCC = melfcc(X, Fs, 'maxfreq', 8000, 'numcep', 13, 'nbands', 40, 'fbtype', 'fcmel', 'dcttype', 1, 'usecmp', 1, 'wintime', winSizeSec, 'hoptime', winSizeSec, 'preemph', 0, 'dither', 1);
+    MFCC = melfcc(X, Fs, 'maxfreq', 8000, 'numcep', NMFCCs, 'nbands', 40, 'fbtype', 'fcmel', 'dcttype', 1, 'usecmp', 1, 'wintime', winSizeSec, 'hoptime', winSizeSec, 'preemph', 0, 'dither', 1);
 
     %Use Dan Ellis's Chroma code
     if verbose == 1
