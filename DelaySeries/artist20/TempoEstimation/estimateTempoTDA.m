@@ -1,4 +1,4 @@
-function [tempos, TDAScores, TDAScoresMean, GTTempo] = estimateTempoTDA( fileprefix )
+function [tempos, TDAScores, TDAScoresMean, GTTempo] = estimateTempoTDA( fileprefix, outnum )
     init;%Initialize TDA tools
     addpath('../../');
     addpath('../../chroma-ansyn');
@@ -55,4 +55,17 @@ function [tempos, TDAScores, TDAScoresMean, GTTempo] = estimateTempoTDA( filepre
         S = S(S > 0);
         TDAScoresMean(ii) = mean(S);
     end
+    
+    clf;
+    plot(tempos, TDAScoresMean, 'b');
+    hold on;
+    plot([GTTempo GTTempo], [min(TDAScoresMean), max(TDAScoresMean)], 'r');
+    plot([GTTempo/2 GTTempo/2], [min(TDAScoresMean), max(TDAScoresMean)], 'r');
+    plot([GTTempo*1.5 GTTempo*1.5], [min(TDAScoresMean), max(TDAScoresMean)], 'r');
+    xlabel('BPM');
+    ylabel('Average Max Persistence');
+    title(fileprefix);
+    
+    print('-dpng', '-r100', sprintf('%i.png', outnum));
+    save(sprintf('%i.mat', outnum), 'tempos', 'TDAScores', 'TDAScoresMean', 'GTTempo');
 end
