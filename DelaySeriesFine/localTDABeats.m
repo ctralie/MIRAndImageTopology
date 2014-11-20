@@ -1,11 +1,16 @@
-function [Is, Generators, AllSampleDelays, Ds] = localTDABeats( X, Fs, winSizeSec )
+function [DelaySeries, SampleDelays, AllSampleDelays, Ds] = localTDABeats( X, Fs, winSizeSec, DelaySeriesIn, SampleDelaysIn )
     addpath('../TDAMex');
     skipSizeSec = winSizeSec/50;
     TDAWinSizeSec = winSizeSec*4;
     
-    disp('Computing Delay Series...');
-    [DelaySeries, ~, SampleDelays] = getDelaySeriesFeatures( X, Fs, winSizeSec, skipSizeSec, 20 );
-    disp('Finished Delay Series Computation');
+    if nargin < 5
+        disp('Computing Delay Series...');
+        [DelaySeries, ~, SampleDelays] = getDelaySeriesFeatures( X, Fs, winSizeSec, skipSizeSec, 20 );
+        disp('Finished Delay Series Computation');
+    else
+        DelaySeries = DelaySeriesIn;
+        SampleDelays = SampleDelaysIn;
+    end
     
     TDASkipSize = 10;
     TDAWindowSize = round(TDAWinSizeSec/skipSizeSec);
@@ -13,8 +18,6 @@ function [Is, Generators, AllSampleDelays, Ds] = localTDABeats( X, Fs, winSizeSe
     
     fprintf(1, 'Doing TDA in %i different intervals of size %i', length(TDAIntervals), TDAWindowSize);
     
-    Is = cell(1, length(TDAIntervals));
-    Generators = cell(1, length(TDAIntervals));
     AllSampleDelays = cell(1, length(TDAIntervals));
     Ds = cell(1, length(TDAIntervals));
     
@@ -24,10 +27,6 @@ function [Is, Generators, AllSampleDelays, Ds] = localTDABeats( X, Fs, winSizeSe
         Y = bsxfun(@minus, mean(Y), Y);
         Norm = 1./(sqrt(sum(Y.*Y, 2)));
         Y = Y.*(repmat(Norm, [1 size(Y, 2)]));        
-        
-%         [~, I, IGenerators] = getGeneratorsFromTDAJar(squareform(pdist(Y)));
-%         Is{ii} = I;
-%         Generators{ii} = IGenerators;
         
         AllSampleDelays{ii} = SampleDelays(idx);
         Ds{ii} = pdist(Y);
