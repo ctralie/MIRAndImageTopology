@@ -1,11 +1,10 @@
-ii = 100;
 init;
 
 alltracks = 'a20-all-tracks.txt';
 files = textread(alltracks, '%s\n');
-[X, Fs] = audioread(sprintf('../DelaySeries/artist20/mp3s-32k/%s.mp3', files{ii}));
-ChromaFtrs = load( sprintf('../DelaySeries/artist20/chromftrs/%s.mat', files{ii}) );
-disp(files{ii});
+[X, Fs] = audioread(sprintf('../DelaySeries/artist20/mp3s-32k/%s.mp3', files{songindex}));
+ChromaFtrs = load( sprintf('../DelaySeries/artist20/chromftrs/%s.mat', files{songindex}) );
+disp(files{songindex});
 bts = ChromaFtrs.bts;
 meanMicroBeat = mean(bts(2:end) - bts(1:end-1));
 
@@ -59,4 +58,4 @@ for dindex = 1:length(Ds)
     LEigs{dindex} = eig(L);
     Is{dindex} = rca1dm(D, max(D(:)));
 end
-save(sprintf('%i.mat', ii), 'LEigs', 'Is', 'bts', 'SampleDelays', 'Fs', 'meanMicroBeat');
+save(sprintf('BeatSync%i.mat', songindex), 'LEigs', 'Is', 'bts', 'SampleDelays', 'Fs', 'meanMicroBeat');
