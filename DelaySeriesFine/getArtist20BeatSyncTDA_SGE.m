@@ -1,18 +1,15 @@
 init;
 
 try
-    disp(files{songindex});
+    
     alltracks = 'a20-all-tracks.txt';
     files = textread(alltracks, '%s\n');
-%     [X, Fs] = audioread(sprintf('../DelaySeries/artist20/mp3s-32k/%s.mp3', files{songindex}));
-%     ChromaFtrs = load( sprintf('../DelaySeries/artist20/chromftrs/%s.mat', files{songindex}) );
-%     
-%     bts = ChromaFtrs.bts;
-%     meanMicroBeat = mean(bts(2:end) - bts(1:end-1));
+    fprintf(1, 'PROCESSING SONG: %s\n', files{songindex});
+    [X, Fs] = audioread(sprintf('BeatsAndOggs/%i.ogg', songindex));
 
-    %Precomputed delay series and microbeat
-    load(sprintf('BeatSyncMFCCs/%i.mat', songindex));
-    [~, ~, SampleDelays, Ds] = localTDABeats([], [], meanMicroBeat, DelaySeries, SampleDelays);
+    %Precomputed microbeat
+    load(sprintf('BeatsAndOggs/%i.mat', songindex));
+    [~, ~, SampleDelays, Ds] = localTDABeats(X, Fs, meanMicroBeat);
 
     %Setup time loop indices
     tmp = ones(length(SampleDelays{1}));
@@ -64,5 +61,5 @@ try
     end
     save(sprintf('BeatSync%i.mat', songindex), 'LEigs', 'Is', 'bts', 'SampleDelays', 'Fs', 'meanMicroBeat');
 catch err
-    err;
+    err
 end
