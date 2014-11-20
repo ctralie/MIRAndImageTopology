@@ -1,8 +1,7 @@
-function [Is, Generators, AllSampleDelays, Ds] = localTDABeats( X, Fs )
+function [Is, Generators, AllSampleDelays, Ds] = localTDABeats( X, Fs, winSizeSec )
     addpath('../TDAMex');
-    winSizeSec = 0.25;
-    skipSizeSec = 0.005;
-    TDAWinSizeSec = 1;
+    skipSizeSec = winSizeSec/50;
+    TDAWinSizeSec = winSizeSec*4;
     
     disp('Computing Delay Series...');
     [DelaySeries, ~, SampleDelays] = getDelaySeriesFeatures( X, Fs, winSizeSec, skipSizeSec, 20 );
@@ -20,7 +19,6 @@ function [Is, Generators, AllSampleDelays, Ds] = localTDABeats( X, Fs )
     Ds = cell(1, length(TDAIntervals));
     
     for ii = 1:length(TDAIntervals)
-        tic;
         idx = TDAIntervals(ii) + (1:TDAWindowSize);
         Y = DelaySeries(idx, :);
         Y = bsxfun(@minus, mean(Y), Y);
@@ -33,7 +31,5 @@ function [Is, Generators, AllSampleDelays, Ds] = localTDABeats( X, Fs )
         
         AllSampleDelays{ii} = SampleDelays(idx);
         Ds{ii} = pdist(Y);
-        toc
-        fprintf(1, 'Finished %i of %i\n', ii, length(TDAIntervals));
     end
 end
