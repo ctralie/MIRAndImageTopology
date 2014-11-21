@@ -1,7 +1,8 @@
-init;
+javaclasspath('jars/tda.jar');
+import api.*;
+tda = Tda();
 
 try
-    
     alltracks = 'a20-all-tracks.txt';
     files = textread(alltracks, '%s\n');
     fprintf(1, 'PROCESSING SONG: %s\n', files{songindex});
@@ -19,7 +20,8 @@ try
     %Allocate space for persistence diagrams and laplacian eigenvalues
     Is = cell(1, length(Ds));
     LEigs = cell(1, length(Ds));
-
+    TimeLoopHists = cell(1, length(Ds));
+    
     for dindex = 1:length(Ds)
         D = Ds{dindex};
         Delays = SampleDelays{dindex};
@@ -38,7 +40,7 @@ try
             V1 = min(startV(idx(ii)), endV(idx(ii)));
             V2 = max(startV(idx(ii)), endV(idx(ii)));
 
-            LoopTimes(iloops) = (SampleDelays{dindex}(V2) - SampleDelays{dindex}(V1))/Fs;
+            LoopTimes(iloops) = V2 - V1;
             A(V1, V2) = DSorted(ii);
             A(V2, V1) = DSorted(ii);
 
@@ -56,10 +58,18 @@ try
         %L = DegDiag - (DegSqrtInv)*A*(DegSqrtInv);
         L = DegDiag - A;
 
+        %Save graph laplacian eigenvalues
         LEigs{dindex} = eig(L);
-        Is{dindex} = rca1dm(D, max(D(:)));
+        
+        %Save DGM1
+        tda.RCA1( { 'settingsFile=data/cts.txt', 'supplyDataAs=distanceMatrix', ...
+            sprintf('distanceBoundOnEdges=%g', max(D(:)) + 10)}, D );
+        Is{dindex} = tda.getResultsRCA1(1).getIntervals();
+        
+        %Save time loop histogram
+        TimeLoopHists{dindex} = hist(LoopTimes, linspace(0, N, N/5+1));
     end
-    save(sprintf('BeatSync%i.mat', songindex), 'LEigs', 'Is', 'bts', 'SampleDelays', 'Fs', 'meanMicroBeat');
+    save(sprintf('BeatSync%i.mat', songindex), 'LEigs', 'Is', 'bts', 'SampleDelays', 'Fs', 'meanMicroBeat', 'TimeLoopHists');
 catch err
     err
 end
