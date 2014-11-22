@@ -1,7 +1,9 @@
 function [DelaySeries, SampleDelays, AllSampleDelays, Ds] = localTDABeats( X, Fs, winSizeSec, DelaySeriesIn, SampleDelaysIn )
     addpath('../TDAMex');
-    skipSizeSec = winSizeSec/50;
-    TDAWinSizeSec = winSizeSec*4;
+    
+    TDASkipSize = 50;
+    skipSizeSec = winSizeSec/TDASkipSize;
+    TDAWinSizeSec = winSizeSec*4;%Use 4 microbeats
     
     if nargin < 5
         disp('Computing Delay Series...');
@@ -12,7 +14,7 @@ function [DelaySeries, SampleDelays, AllSampleDelays, Ds] = localTDABeats( X, Fs
         SampleDelays = SampleDelaysIn;
     end
     
-    TDASkipSize = 10;
+    
     TDAWindowSize = round(TDAWinSizeSec/skipSizeSec);
     TDAIntervals = 1:TDASkipSize:size(DelaySeries, 1)-TDAWindowSize;
     

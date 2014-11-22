@@ -1,7 +1,7 @@
 alltracks = 'a20-all-tracks.txt';
 files = textread(alltracks, '%s\n');
 
-for ii = 1:length(files);
+for ii = 925:length(files);
     ii
     %system(sprintf('avconv -i ../DelaySeries/artist20/mp3s-32k/%s.mp3 BeatsAndOggs/%i.ogg', files{ii}, ii));
     [X, Fs] = audioread(sprintf('../DelaySeries/artist20/mp3s-32k/%s.mp3', files{ii}));
