@@ -1,36 +1,41 @@
-function [DelaySeries, SampleDelays, AllSampleDelays, Ds] = localTDABeats( X, Fs, winSizeSec, DelaySeriesIn, SampleDelaysIn )
-    addpath('../TDAMex');
-    
-    TDASkipSize = 50;
-    skipSizeSec = winSizeSec/TDASkipSize;
-    TDAWinSizeSec = winSizeSec*4;%Use 4 microbeats
-    
-    if nargin < 5
-        disp('Computing Delay Series...');
-        [DelaySeries, ~, SampleDelays] = getDelaySeriesFeatures( X, Fs, winSizeSec, skipSizeSec, 20 );
-        disp('Finished Delay Series Computation');
-    else
-        DelaySeries = DelaySeriesIn;
-        SampleDelays = SampleDelaysIn;
+function [AllSampleDelays, Ds] = localTDABeats( X, Fs, bts, NMFCCs)
+  	if nargin < 4
+		NMFCCs = 20;
     end
+    addpath('rastamat');
+    BtsWin = 4;
+    SamplesPerWin = 200;
     
+    N = length(bts) - BtsWin - 1;%Do sliding windows on 4 microbeats
+    fprintf(1, 'Computing Delay Series on %i %i-microbeat windows\n', N, BtsWin);
     
-    TDAWindowSize = round(TDAWinSizeSec/skipSizeSec);
-    TDAIntervals = 1:TDASkipSize:size(DelaySeries, 1)-TDAWindowSize;
+    AllSampleDelays = cell(1, N);
+    Ds = cell(1, N);
     
-    fprintf(1, 'Doing TDA in %i different intervals of size %i', length(TDAIntervals), TDAWindowSize);
-    
-    AllSampleDelays = cell(1, length(TDAIntervals));
-    Ds = cell(1, length(TDAIntervals));
-    
-    for ii = 1:length(TDAIntervals)
-        idx = TDAIntervals(ii) + (1:TDAWindowSize);
-        Y = DelaySeries(idx, :);
+    for ii = 1:N
+        fprintf(1, 'Finished MFCCs %i of %i\n', ii, N);
+        thisbts = bts(ii:ii + BtsWin);
+        winSizeSec = mean(thisbts(2:end) - thisbts(1:end-1));
+        winSize = round(Fs*winSizeSec);
+        TDAWinSizeSec = BtsWin*winSizeSec;
+        skipSizeSec = TDAWinSizeSec/SamplesPerWin;
+        skipSize = round(Fs*skipSizeSec);
+        startidx = round(Fs*thisbts(1));
+        
+        SampleDelays = zeros(1, SamplesPerWin);
+        Y = zeros(SamplesPerWin, NMFCCs);
+        for kk = 1:SamplesPerWin
+            interval = startidx+skipSize*(kk-1) + (1:winSize);
+            x = X(interval);
+            Y(kk, :) = melfcc(x, Fs, 'maxfreq', 8000, 'numcep', NMFCCs, 'nbands', 40, 'fbtype', 'fcmel', 'dcttype', 1, 'usecmp', 1, 'wintime', winSizeSec, 'hoptime', winSizeSec, 'preemph', 0, 'dither', 1);
+            SampleDelays(kk) = interval(1);
+        end
+        
         Y = bsxfun(@minus, mean(Y), Y);
         Norm = 1./(sqrt(sum(Y.*Y, 2)));
         Y = Y.*(repmat(Norm, [1 size(Y, 2)]));        
         
-        AllSampleDelays{ii} = SampleDelays(idx);
+        AllSampleDelays{ii} = SampleDelays;
         Ds{ii} = pdist(Y);
     end
 end

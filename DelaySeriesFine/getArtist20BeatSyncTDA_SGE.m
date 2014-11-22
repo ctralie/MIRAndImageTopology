@@ -2,7 +2,7 @@ javaclasspath('jars/tda.jar');
 import api.*;
 tda = Tda();
 
-try
+% try
     alltracks = 'a20-all-tracks.txt';
     files = textread(alltracks, '%s\n');
     fprintf(1, 'PROCESSING SONG: %s\n', files{songindex});
@@ -10,7 +10,7 @@ try
 
     %Precomputed microbeat
     load(sprintf('BeatsAndOggs/%i.mat', songindex));
-    [~, ~, SampleDelays, Ds] = localTDABeats(X, Fs, meanMicroBeat);
+    [SampleDelays, Ds] = localTDABeats(X, Fs, bts);
 
     %Setup time loop indices
     tmp = ones(length(SampleDelays{1}));
@@ -70,6 +70,6 @@ try
         TimeLoopHists{dindex} = hist(LoopTimes, linspace(0, N, N/5+1));
     end
     save(sprintf('BeatSync%i.mat', songindex), 'LEigs', 'Is', 'bts', 'SampleDelays', 'Fs', 'meanMicroBeat', 'TimeLoopHists');
-catch err
-    err
-end
+% catch err
+%     err
+% end

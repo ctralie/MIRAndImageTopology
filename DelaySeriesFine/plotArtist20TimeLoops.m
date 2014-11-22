@@ -1,14 +1,16 @@
-ii = 100;
-init;
+songindex = 1;
+javaclasspath('jars/tda.jar');
+import api.*;
+tda = Tda();
 
 alltracks = 'a20-all-tracks.txt';
 files = textread(alltracks, '%s\n');
-[X, Fs] = audioread(sprintf('../DelaySeries/artist20/mp3s-32k/%s.mp3', files{ii}));
-ChromaFtrs = load( sprintf('../DelaySeries/artist20/chromftrs/%s.mat', files{ii}) );
+%[X, Fs] = audioread(sprintf('BeatsAndOggs/%i.ogg', songindex));
+ChromaFtrs = load( sprintf('../DelaySeries/artist20/chromftrs/%s.mat', files{songindex}) );
 bts = ChromaFtrs.bts;
 meanMicroBeat = mean(bts(2:end) - bts(1:end-1));
 
-[Is, Generators, SampleDelays, Ds] = localTDABeats(X, Fs, meanMicroBeat);
+[SampleDelays, Ds] = localTDABeats(X, Fs, bts);
 
 %Setup time loop indices
 tmp = ones(length(SampleDelays{1}));
@@ -96,7 +98,9 @@ for dindex = 1:length(Ds)
     ylabel('Seconds');
     ylim([min(Delays), max(Delays)]);
     
-    I = rca1dm(D, max(D(:)));
+    tda.RCA1( { 'settingsFile=data/cts.txt', 'supplyDataAs=distanceMatrix', ...
+        sprintf('distanceBoundOnEdges=%g', max(D(:)) + 10)}, D );
+    I = tda.getResultsRCA1(1).getIntervals();
     subplot(2, 3, 3);
     if ~isempty(I)
         plotpersistencediagram(I);
