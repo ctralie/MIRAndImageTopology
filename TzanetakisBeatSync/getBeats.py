@@ -4,15 +4,16 @@ import requests
 import json
 import numpy as np
 import scipy.io as sio
+import os
 
 def getBeats(url, ECHONESTKEY):
 	uploadRequestURL = "http://developer.echonest.com/api/v4/track/upload"
 	payload = {'format':'json', 'api_key':ECHONESTKEY, 'url':url}
-	results = requests.post(uploadRequestURL, payload)		
+	results = requests.post(uploadRequestURL, payload, timeout = 20)		
 	results = results.json()
 	if results['response']['status']['code'] == 0:
 		trid = results['response']['track']['id']
-		results = requests.get("http://developer.echonest.com/api/v4/track/profile?format=json&bucket=audio_summary&api_key=%s&id=%s"%(ECHONESTKEY, trid))
+		results = requests.get("http://developer.echonest.com/api/v4/track/profile?format=json&bucket=audio_summary&api_key=%s&id=%s"%(ECHONESTKEY, trid), timeout = 20)
 		results = results.json()
 		track = results['response']['track']
 		analysis_url = track['audio_summary']['analysis_url']
@@ -42,8 +43,17 @@ if __name__ == '__main__':
 		for i in range(100):
 			song = "%s/%s.%.5i"%(genre, genre, i)
 			url = baseurl + song + ".au"
-			print url
-			(onsets, durations) = getBeats(url, ECHONESTKEY)
-			onsets = np.array(onsets)
-			durations = np.array(durations)
-			sio.savemat("genres/%s.mat"%song, {'onsets':onsets, 'durations':durations})
+			matFile = "genres/%s.mat"%song
+			if os.path.isfile(matFile):
+				print "Skipping %s"%url
+			else:
+				print url
+				while True:
+					try:
+						(onsets, durations) = getBeats(url, ECHONESTKEY)
+						break
+					except:
+						print "TRYING AGAIN"
+				onsets = np.array(onsets)
+				durations = np.array(durations)
+				sio.savemat(matFile, {'onsets':onsets, 'durations':durations})
