@@ -2,6 +2,11 @@ function [L] = getRasterizedLandscape( I, xrange, yrange, UpFac )
     if nargin < 4
         UpFac = 10;
     end
+    if isempty(I)
+        %Take care of the case of an empty persistence diagram
+        L = zeros(length(yrange), length(xrange));
+        return;
+    end
     NX = length(xrange);
     NY = length(yrange);
     %Rasterize on a finer grid and downsample
