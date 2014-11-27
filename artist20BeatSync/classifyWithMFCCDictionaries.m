@@ -50,7 +50,7 @@ for ii = 1:NArtists
     for kk = 1:length(songsByArtist{ii})
         X = readhtk(sprintf('../DelaySeries/artist20/mfccs/%s.htk', songsByArtist{ii}{kk}));
         alpha = mexOMP(X', D, param);
-        alpha = sum(abs(alpha), 2);
+        alpha = mean(abs(alpha), 2);%***Take the mean to normalize for song length
         alpha = reshape(alpha, NDictElems, NArtists);
         scorePooled = full(sum(alpha, 1));
         
@@ -90,10 +90,10 @@ end
 imagesc(CLevel1);
 set(gca, 'YLim', [0 NArtists+1], 'YTick', 1:NArtists, 'YTickLabel', artistNamesDisp);
 set(gca, 'XLim', [0 NArtists+1], 'XTick', 1:NArtists, 'XTickLabel', artistNamesDisp);
-title(sprintf('Level 1%g Percent Correct', 100*sum(diag(CLevel1))/sum(CLevel1(:))));
+title(sprintf('Level 1 %g Percent Correct', 100*sum(diag(CLevel1))/sum(CLevel1(:))));
 
 figure;
 imagesc(CLevel2);
 set(gca, 'YLim', [0 NArtists+1], 'YTick', 1:NArtists, 'YTickLabel', artistNamesDisp);
 set(gca, 'XLim', [0 NArtists+1], 'XTick', 1:NArtists, 'XTickLabel', artistNamesDisp);
-title(sprintf('Level 2%g Percent Correct', 100*sum(diag(CLevel2))/sum(CLevel2(:))));
+title(sprintf('Level 2 %g Percent Correct', 100*sum(diag(CLevel2))/sum(CLevel2(:))));

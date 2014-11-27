@@ -4,11 +4,11 @@ addpath('..');
 
 
 %Parameters
-LandscapeRes = 100;
+LandscapeRes = 25;
 xrangeLandscape = linspace(0, 2, LandscapeRes);
 yrangeLandscape = linspace(0, 0.6, LandscapeRes);
 NArtists = 20;
-NDictElems = 32;
+NDictElems = 64;
 param.K = NDictElems;
 param.numThreads = 4;
 param.lambda = 0.15;
@@ -38,17 +38,26 @@ for ii = 1:length(files)
     songsByArtist{idx}{end+1} = files{ii};
 end
 
+%load('LandscapeDs.mat');
 LandscapeDs = cell(1, NArtists);
 
 for ii = 1:20
     NSongs = length(songsByArtist{ii});
     f = strsplit(songsByArtist{ii}{1}, '/');
     X = [];
+    if ~isempty(LandscapeDs{ii})
+        fprintf(1, 'Skipping %s\n', f{1});
+        continue;
+    end
     fprintf(1, 'Calculating persistence landscape dictionary for %s\n', f{1});
     for kk = 1:NSongs
         fprintf(1, '%i of %i songs for %s\n', kk, NSongs, f{1});
         idx = songsMap.get(songsByArtist{ii}{kk});
-        Feats = load(sprintf('BeatSyncFeatures/BeatSync%i.mat', idx));
+        filename = sprintf('BeatSyncFeatures/BeatSync%i.mat', idx);
+        if ~exist(filename)
+            continue;
+        end
+        Feats = load(filename);
         thisX = zeros(LandscapeRes*LandscapeRes, length(Feats.Is));
         %Go through every persistence diagram and add to the dictionary
         for jj = 1:length(Feats.Is)
