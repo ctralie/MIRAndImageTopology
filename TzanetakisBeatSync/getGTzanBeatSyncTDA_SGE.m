@@ -5,7 +5,7 @@ import api.*;
 tda = Tda();
 
 genres = {'blues', 'classical', 'country', 'disco', 'hiphop', 'jazz', 'metal', 'pop', 'reggae', 'rock'};
-DOPLOT = 0;
+DOPLOT = 1;
 
 try
     genreIdx = ceil(songindex/100);
@@ -25,7 +25,7 @@ try
     %Precomputed macrobeats
     bts = load(beatsFilename);
     bts = bts.onsets;
-    %[SampleDelays, Ds] = localTDABeats(X, Fs, bts);
+    [SampleDelays, Ds] = localTDABeats(X, Fs, bts);
 
     %Setup time loop indices
     tmp = ones(length(SampleDelays{1}));
