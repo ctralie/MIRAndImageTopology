@@ -3,9 +3,10 @@
 javaclasspath('jars/tda.jar');
 import api.*;
 tda = Tda();
+addpath('rastamat');
 
 genres = {'blues', 'classical', 'country', 'disco', 'hiphop', 'jazz', 'metal', 'pop', 'reggae', 'rock'};
-DOPLOT = 1;
+DOPLOT = 0;
 
 try
     genreIdx = ceil(songindex/100);
