@@ -25,7 +25,13 @@ function [I, J, JGenerators, D] = doVideoHomology( filename )
            fprintf(1, '\n'); 
         end
     end
+
+    figure;
+    [~, Y] = pca(hogs);
+    
+    figure;
     D = squareform(pdist(hogs));
+    imagesc(D);
     DAvg = squareform(pdist(hogsavg));
     minDist = min(D(:));
     maxDist = max(D(:));
@@ -44,6 +50,7 @@ function [I, J, JGenerators, D] = doVideoHomology( filename )
        title( sprintf('%g', J(genOrder(i), 2) - J(genOrder(i), 1)) );
     end
     
+
 %     disp('Doing CMDS....');
 %     [Y, eigvals] = cmdscale(D);
 %     [YAvg, eigvalsavg] = cmdscale(DAvg);

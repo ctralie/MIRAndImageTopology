@@ -18,6 +18,7 @@ function [] = saveVideoGenerators( filename, outPrefix, J, JGenerators, NGenerat
         writerObj = VideoWriter(thisFilename);
         open(writerObj);
         Generator = JGeneratorsOut{genOrder(ii)};
+        Generator = Generator(2:end);
         for jj = 1:length(Generator)
            clf;
            thisFrame = Generator(jj);
@@ -27,8 +28,9 @@ function [] = saveVideoGenerators( filename, outPrefix, J, JGenerators, NGenerat
            frameim(:, max(thisFrame-2, 1):min(thisFrame+2, end)) = 2;
            subplot(10, 10, [1:5]);
            imagesc(frameim);
+           axis off;
            persistence = JOut(genOrder(ii), 2) - JOut(genOrder(ii), 1);
-           title(sprintf('Cycle %i Frame %i Persistence %g', ii, thisFrame, persistence));
+           title(sprintf('Cycle %i Frame %i Persistence %g', ii, jj, persistence));
            axis equal;
            
            %Plot the frame locations of the generator, along with
@@ -38,8 +40,10 @@ function [] = saveVideoGenerators( filename, outPrefix, J, JGenerators, NGenerat
            hold on;
            stem(jj, thisFrame, 'r');
            ylim([min(Generator), max(Generator)]);
+           title(sprintf('Video Location Frame %i', thisFrame));
            
            %Now plot the frame next to the MDS projected position
+           thisFrame
            frame = read(videoReader, thisFrame);
            writeVideo(writerObj, frame);
            x = 11:100;
@@ -47,6 +51,7 @@ function [] = saveVideoGenerators( filename, outPrefix, J, JGenerators, NGenerat
            subplot(10, 10, x);
            imagesc(frame);
            axis equal;axis square;
+           axis off;
            x = 11:100;
            x = x(mod(ceil(x/5), 2) == 1);
            subplot(10, 10, x);
@@ -54,15 +59,18 @@ function [] = saveVideoGenerators( filename, outPrefix, J, JGenerators, NGenerat
            scatter(Y(:, 1), Y(:, 2), 50, 'b', 'fill');
            hold on;
            plot([Y(:, 1); Y(1, 1)], [Y(:, 2); Y(1, 2)]);
+           textlabels = arrayfun(@(x) {sprintf('%d', x)}, (1:size(Y, 1))');
+           text(Y(:, 1) + 100, Y(:, 2) + 100, textlabels); 
+           
            scatter(Y(jj, 1), Y(jj, 2), 50, 'r', 'fill');
            axis equal;axis square;
            
-           print('-dpng', '-r100', sprintf('%s%i.png', outPrefix, frameIndex));
+           print('-dsvg', '-r100', sprintf('%s%i_%i.svg', outPrefix, ii, jj));
            frameIndex = frameIndex + 1;
         end
         clf;
         close(writerObj);
     end
-    system(sprintf('ffmpeg -r 4 -i %s%s.png -r 4 %s.ogg', outPrefix, '%d', outPrefix));
-    system('rm %s*.png', outPrefix);
+    %system(sprintf('ffmpeg -r 4 -i %s%s.png -r 4 %s.ogg', outPrefix, '%d', outPrefix));
+    %system('rm %s*.png', outPrefix);
 end
