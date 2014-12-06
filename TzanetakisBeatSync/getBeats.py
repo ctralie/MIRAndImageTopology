@@ -30,7 +30,32 @@ def getBeats(url, ECHONESTKEY):
 	else :
 		print "ERROR loading information"
 
+
 if __name__ == '__main__':
+	#This code assumes the Tzanetakis dataset has been unextracted
+	#and uploaded somewhere.  In this case my site
+	baseurl = 'http://people.duke.edu/~cjt16/missing/'
+	songs = ['metal.00020', 'pop.00029', 'pop.00065', 'pop.00066', 'reggae.00030', 'reggae.00039', 'reggae.00086']
+	fin = open('EchoNestKey.txt')
+	ECHONESTKEY = fin.readlines()[0].rstrip('\n')
+	fin.close()
+	
+	for song in songs:
+		url = baseurl + song + ".au"
+		matFile = "genres/%s/%s.mat"%(song.split('.')[0], song)
+		print url
+		while True:
+			try:
+				(onsets, durations) = getBeats(url, ECHONESTKEY)
+				print onsets
+				break
+			except:
+				print "TRYING AGAIN"
+		onsets = np.array(onsets)
+		durations = np.array(durations)
+		sio.savemat(matFile, {'onsets':onsets, 'durations':durations})
+
+if __name__ == '__main__2':
 	#This code assumes the Tzanetakis dataset has been unextracted
 	#and uploaded somewhere.  In this case my site
 	baseurl = 'http://people.duke.edu/~cjt16/genres/'
