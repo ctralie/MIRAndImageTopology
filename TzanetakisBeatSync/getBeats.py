@@ -23,15 +23,17 @@ def getBeats(url, ECHONESTKEY):
 		beats = results['beats']
 		onsets = []
 		durations = []
+		confidences = []
 		for beat in beats:
 			onsets.append(beat['start'])
 			durations.append(beat['duration'])
-		return (onsets, durations)
+			confidences.append(beat['confidence'])
+		return (onsets, durations, confidences)
 	else :
 		print "ERROR loading information"
 
 
-if __name__ == '__main__':
+if __name__ == '__main__2':
 	#This code assumes the Tzanetakis dataset has been unextracted
 	#and uploaded somewhere.  In this case my site
 	baseurl = 'http://people.duke.edu/~cjt16/missing/'
@@ -46,16 +48,15 @@ if __name__ == '__main__':
 		print url
 		while True:
 			try:
-				(onsets, durations) = getBeats(url, ECHONESTKEY)
-				print onsets
+				(onsets, durations, confidences) = getBeats(url, ECHONESTKEY)
 				break
 			except:
 				print "TRYING AGAIN"
 		onsets = np.array(onsets)
 		durations = np.array(durations)
-		sio.savemat(matFile, {'onsets':onsets, 'durations':durations})
+		sio.savemat(matFile, {'onsets':onsets, 'durations':durations, 'confidences':confidences})
 
-if __name__ == '__main__2':
+if __name__ == '__main__':
 	#This code assumes the Tzanetakis dataset has been unextracted
 	#and uploaded somewhere.  In this case my site
 	baseurl = 'http://people.duke.edu/~cjt16/genres/'
@@ -68,17 +69,17 @@ if __name__ == '__main__2':
 		for i in range(100):
 			song = "%s/%s.%.5i"%(genre, genre, i)
 			url = baseurl + song + ".au"
-			matFile = "genres/%s.mat"%song
+			matFile = "TzanetakisBeats/%s.mat"%song
 			if os.path.isfile(matFile):
 				print "Skipping %s"%url
 			else:
 				print url
 				while True:
 					try:
-						(onsets, durations) = getBeats(url, ECHONESTKEY)
+						(onsets, durations, confidences) = getBeats(url, ECHONESTKEY)
 						break
 					except:
 						print "TRYING AGAIN"
 				onsets = np.array(onsets)
 				durations = np.array(durations)
-				sio.savemat(matFile, {'onsets':onsets, 'durations':durations})
+				sio.savemat(matFile, {'onsets':onsets, 'durations':durations, 'confidences':confidences})
