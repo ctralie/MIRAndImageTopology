@@ -1,10 +1,13 @@
 #Programmer: Chris Tralie
-#Purpose: To use the EchoNest api to get the beats for the Tzanetakis dataset
+#Purpose: To use the EchoNest api to get the beats for the Tzanetakis genre dataset
 import requests
 import json
 import numpy as np
 import scipy.io as sio
 import os
+
+#Change this to match a location where the Tzanetakis dataset has been mirrored
+BASEURL = 'http://people.duke.edu/~cjt16/genres/'
 
 def getBeats(url, ECHONESTKEY):
 	uploadRequestURL = "http://developer.echonest.com/api/v4/track/upload"
@@ -32,34 +35,9 @@ def getBeats(url, ECHONESTKEY):
 	else :
 		print "ERROR loading information"
 
-
-if __name__ == '__main__2':
-	#This code assumes the Tzanetakis dataset has been unextracted
-	#and uploaded somewhere.  In this case my site
-	baseurl = 'http://people.duke.edu/~cjt16/missing/'
-	songs = ['metal.00020', 'pop.00029', 'pop.00065', 'pop.00066', 'reggae.00030', 'reggae.00039', 'reggae.00086']
-	fin = open('EchoNestKey.txt')
-	ECHONESTKEY = fin.readlines()[0].rstrip('\n')
-	fin.close()
-	
-	for song in songs:
-		url = baseurl + song + ".au"
-		matFile = "genres/%s/%s.mat"%(song.split('.')[0], song)
-		print url
-		while True:
-			try:
-				(onsets, durations, confidences) = getBeats(url, ECHONESTKEY)
-				break
-			except:
-				print "TRYING AGAIN"
-		onsets = np.array(onsets)
-		durations = np.array(durations)
-		sio.savemat(matFile, {'onsets':onsets, 'durations':durations, 'confidences':confidences})
-
 if __name__ == '__main__':
 	#This code assumes the Tzanetakis dataset has been unextracted
 	#and uploaded somewhere.  In this case my site
-	baseurl = 'http://people.duke.edu/~cjt16/genres/'
 	genres = ['blues', 'classical', 'country', 'disco', 'hiphop', 'jazz', 'metal', 'pop', 'reggae', 'rock']
 	fin = open('EchoNestKey.txt')
 	ECHONESTKEY = fin.readlines()[0].rstrip('\n')
@@ -68,7 +46,7 @@ if __name__ == '__main__':
 	for genre in genres:
 		for i in range(100):
 			song = "%s/%s.%.5i"%(genre, genre, i)
-			url = baseurl + song + ".au"
+			url = BASEURL + song + ".au"
 			matFile = "TzanetakisBeats/%s.mat"%song
 			if os.path.isfile(matFile):
 				print "Skipping %s"%url

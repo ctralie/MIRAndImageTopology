@@ -1,3 +1,5 @@
+%Programmer: Chris Tralie
+%Purpose: 
 function [] = makeBeatsAudio( genre, num )
     [X, Fs] = audioread(sprintf('genres/%s/%s.%.5i.au', genre, genre, num));
     bts = load(sprintf('TzanetakisBeats/%s/%s.%.5i.mat', genre, genre, num));

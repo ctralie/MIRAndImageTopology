@@ -1,7 +1,7 @@
-%fs = {[0.5, 0.2, 0.3], [0.1, 0.4], [0.5, 0.2, 0.3]};
-%TLs = [20, 30, 20, 30, 20];
-fs = {[0.5, 0.2, 0.3], [0.1, 0.4]};
-TLs = [20, 30, 20];
+fs = {[0.5, 0.2, 0.3], [0.1, 0.4], [0.6, 0.1, 0.7], [0.05], [0.5, 0.2, 0.3]};
+TLs = [20, 5, 5, 5, 20, 5, 15, 5, 10];
+% fs = {[0.5, 0.2, 0.3], [0.1, 0.4]};
+% TLs = [20, 30, 20];
 dt = 0.1;
 T = 10;%Window length
 
@@ -14,6 +14,7 @@ Colors = C( ceil( (1:N)*64/N ), :);
 
 [~, YProj, latent] = pca(Y);
 
+figure(1);
 clf;
 c = {'r', 'b', 'k', 'g', 'c', 'm', 'y'};
 subplot(2, 2, 1);
@@ -50,3 +51,8 @@ title('Spectrum Windows');
 subplot(2, 2, 4);
 plot(latent(1:min(15, length(latent))));
 title('Eigenvalues');
+
+figure(2);
+init;
+I = rca1pc(Y(1:2:end, :), 1e9);
+plotpersistencediagram(I);

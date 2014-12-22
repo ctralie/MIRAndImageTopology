@@ -1,13 +1,13 @@
 %Compute the beat-synchronous TDA, and also compute many 30ms MFCCs
-
+function [] = getBeatSyncTDA_SGE(songIdx)
 javaclasspath('jars/tda.jar');
 import api.*;
 tda = Tda();
 addpath('rastamat');
 
-DOPLOT = 1;
+DOPLOT = 0;
 
-%try
+try
     files = textread('allfiles.list', '%s\n');
     filename = sprintf('BeatsAndOggs/%s.ogg', files{songIdx});
     beatsFilename = sprintf('BeatsAndOggs/%s.mat', files{songIdx});
@@ -139,8 +139,9 @@ DOPLOT = 1;
         end
         
     end
-    save(sprintf('Features/%s.mat', files{songIdx}),  ...
+    save(sprintf('ftrsgeom/%s.mat', files{songIdx}),  ...
         'LEigs', 'Is', 'bts', 'SampleDelays', 'Fs', 'TimeLoopHists', 'MFCCs');
-%catch err
-%    err
-%end
+catch err
+   err
+end
+end

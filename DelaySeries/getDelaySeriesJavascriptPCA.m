@@ -1,8 +1,25 @@
-function [DelaySeries, D] = getDelaySeriesJavascriptPCA( filename, hopSize, skipSize, windowSize, NMFCCs, velocityLambda, outprefix, sphereNormalize )
+function [DelaySeriesOrig, DelaySeries, D] = getDelaySeriesJavascriptPCA( ...
+    filename, hopSize, skipSize, windowSize, ...
+    NMFCCs, velocityLambda, outprefix, sphereNormalize, onlyMFCCs, differential )
     if nargin < 8
     	sphereNormalize = 0;
     end
+    if nargin < 9
+        onlyMFCCs = 0;
+    end
+    if nargin < 10
+        differential = 0;
+    end
     [DelaySeries, ~, SampleDelays] = getDelaySeriesFeatures( filename, hopSize, skipSize, windowSize, NMFCCs );
+    
+    if onlyMFCCs
+        DelaySeries = DelaySeries(:, 5:5+NMFCCs-1);%Only take MFCCs average
+    end
+    
+    if differential
+        DelaySeries = DelaySeries(2:end, :) - DelaySeries(1:end-1, :);
+        SampleDelays = SampleDelays(1:end-1);
+    end
     
     %Center on mean and scale by the standard deviation of each feature
     DelaySeries = bsxfun(@minus, mean(DelaySeries), DelaySeries);
@@ -15,6 +32,8 @@ function [DelaySeries, D] = getDelaySeriesJavascriptPCA( filename, hopSize, skip
     else
         DelaySeries = bsxfun(@times, 1./std(DelaySeries), DelaySeries);
     end
+    
+    DelaySeriesOrig = DelaySeries;
     
     if velocityLambda == 0
         [~, DelaySeries, latent] = pca(DelaySeries);
