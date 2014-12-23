@@ -30,7 +30,7 @@ function [ d, D ] = getEditDist( s1, s2, type )
                 eq = D(ii-1,jj-1) + eq;
                 gapi = D(ii-1, jj) - 2;
                 gapj = D(ii,  jj-1) - 2;
-                D(ii, jj) = max([eq, gapi, gapj])
+                D(ii, jj) = max([eq, gapi, gapj]);
             end
         end
         d = D(N, M);
