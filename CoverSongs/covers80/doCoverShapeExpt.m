@@ -70,12 +70,28 @@ elseif TYPE == TYPE_LANDSCAPEKMEANSEDIT
     R = zeros(length(features1), length(features2));
     for ii = 1:length(features1)
         parfor jj = 1:length(features2)
-            R(ii, jj) = getEditDist(features1{ii}, features2{jj});
+            R(ii, jj) = getEditDist(features1{ii}, features2{jj}) - ...
+                abs(length(features1{ii}) - length(features2{jj}));
             fprintf(1, '(%i, %i): %g\n', ii, jj, R(ii, jj));
         end
     end
     [~, idx] = min(R, [], 2);
     sum(idx' == 1:80)
+            scatter(idx(ii), ii, 30, 'g', 'fill');
     save('R.mat', 'R');
 end
 
+imagesc(R);
+colormap('gray');
+hold on;
+equalidx = 1:80;
+equalidx = equalidx(idx' == 1:80);
+for ii = 1:length(idx)
+    if ii == idx(ii)
+        scatter(idx(ii), ii, 30, 'g', 'fill');
+    else
+        scatter(idx(ii), ii, 30, 'r', 'fill');
+        scatter(ii, ii, 10, 'b', 'fill');
+    end
+end
+title(sprintf('%i of %i correct', sum(1:80 == idx'), 80));
