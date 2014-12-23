@@ -14,7 +14,7 @@ features2 = cell(1, length(files2));
 if TYPE == TYPE_TIMELOOPHISTSCORR
     cutoffidx = 11;
 
-    for ii = 1:length(features1)
+    parfor ii = 1:length(features1)
         feats = load(sprintf('ftrsgeom/%s.mat', files1{ii}));
         hists = feats.TimeLoopHists;
         hists = reshape(hists, [length(hists), 1]);
@@ -22,7 +22,7 @@ if TYPE == TYPE_TIMELOOPHISTSCORR
         features1{ii} = features1{ii}(cutoffidx:end, :);
     end
 
-    for ii = 1:length(features2)
+    parfor ii = 1:length(features2)
         feats = load(sprintf('ftrsgeom/%s.mat', files2{ii}));
         hists = feats.TimeLoopHists;
         hists = reshape(hists, [length(hists), 1]);
@@ -42,7 +42,7 @@ if TYPE == TYPE_TIMELOOPHISTSCORR
 
     R = zeros(length(features1), length(features2));
     for ii = 1:length(features1)
-        for jj = 1:length(features2)
+        parfor jj = 1:length(features2)
             thiscorr = shapexcorr(sqrt(features1{ii}), sqrt(features2{jj}));
             R(ii, jj) = max(thiscorr(:));
             fprintf(1, '(%i, %i): %g\n', ii, jj, R(ii, jj));
@@ -69,12 +69,13 @@ elseif TYPE == TYPE_LANDSCAPEKMEANSEDIT
     end
     R = zeros(length(features1), length(features2));
     for ii = 1:length(features1)
-        for jj = 1:length(features2)
+        parfor jj = 1:length(features2)
             R(ii, jj) = getEditDist(features1{ii}, features2{jj});
             fprintf(1, '(%i, %i): %g\n', ii, jj, R(ii, jj));
         end
     end
     [~, idx] = min(R, [], 2);
     sum(idx' == 1:80)
+    save('R.mat', 'R');
 end
 
