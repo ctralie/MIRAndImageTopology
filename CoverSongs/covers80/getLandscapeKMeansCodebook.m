@@ -1,6 +1,6 @@
 addpath('../../');
 
-k = 4;
+k = 10;
 LandscapeRes = 50;
 xrangeLandscape = linspace(0, 2, LandscapeRes);
 yrangeLandscape = linspace(0, 0.6, LandscapeRes);
