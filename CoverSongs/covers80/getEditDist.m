@@ -14,7 +14,7 @@ function [ d, D ] = getEditDist( s1, s2, type )
         for ii = 2:N
             for jj = 2:M
                 D(ii, jj) = min([D(ii-1, jj)+1, D(ii, jj-1)+1, ...
-                    D(ii-1, jj-1) + 2*(abs(s1(ii)-s2(jj)) > 0)]);
+                    D(ii-1, jj-1) + 2*(abs(s1(ii-1)-s2(jj-1)) > 0)]);
             end
         end
         d = D(N, M);
@@ -24,7 +24,7 @@ function [ d, D ] = getEditDist( s1, s2, type )
         for ii = 2:N
             for jj = 2:M
                 eq = 2;%Match score
-                if (abs(s1(ii)-s2(jj)) > 0)
+                if (abs(s1(ii-1)-s2(jj-1)) > 0)
                     eq = -3;%Mismatch penalty
                 end
                 eq = D(ii-1,jj-1) + eq;
