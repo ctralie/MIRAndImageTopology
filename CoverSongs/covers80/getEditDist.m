@@ -20,7 +20,9 @@ function [ d, D ] = getEditDist( s1, s2, type )
         d = D(N, M);
     elseif type == 2
         %Needleman-Wunsch Distance
-        D = zeros(N, M);%Don't penalize for gaps at the beginning
+        D = zeros(N, M);%Don't penalize as much for gaps at the beginning
+        D(2:end, 1) = -(1:N-1);
+        D(1, 2:end) = -(1:M-1);
         for ii = 2:N
             for jj = 2:M
                 eq = 2;%Match score
