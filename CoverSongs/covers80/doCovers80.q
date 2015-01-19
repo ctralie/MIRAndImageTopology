@@ -1,8 +1,7 @@
-#!/bin/tcsh
+#!/bin/bash
 #
-#$ -S /bin/tcsh -cwd
-#$ -o artistBeatSyncVerbose.out -j y
-#$ -l mem_free=4G
+#SBATCH --output=covers80Verbose.out
+#SBATCH --mem-per-cpu=2000
 
-/opt/apps/MATLAB/R2012b/bin/matlab -nodisplay -r "songIdx=$SGE_TASK_ID;getCoversBeatSyncTDA_SGE;quit"
+/opt/apps/MATLAB/R2012b/bin/matlab -nodisplay -r "songIdx=$SLURM_ARRAY_TASK_ID;getCoversBeatSyncTDA_SGE;quit"
 
