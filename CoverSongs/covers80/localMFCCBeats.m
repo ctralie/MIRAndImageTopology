@@ -1,4 +1,4 @@
-function [AllSampleDelays, Ds] = localMFCCBeats( X, Fs, bts, NMFCCs)
+function [AllSampleDelays, Ds, PointClouds] = localMFCCBeats( X, Fs, bts, NMFCCs)
   	if nargin < 4
 		NMFCCs = 20;
     end
@@ -11,6 +11,7 @@ function [AllSampleDelays, Ds] = localMFCCBeats( X, Fs, bts, NMFCCs)
     
     AllSampleDelays = cell(1, N);
     Ds = cell(1, N);
+    PointClouds = cell(1, N);
     
     for ii = 1:N
         fprintf(1, 'Finished MFCCs %i of %i\n', ii, N);
@@ -35,6 +36,7 @@ function [AllSampleDelays, Ds] = localMFCCBeats( X, Fs, bts, NMFCCs)
         Norm = 1./(sqrt(sum(Y.*Y, 2)));
         Y = Y.*(repmat(Norm, [1 size(Y, 2)]));        
         
+        PointClouds{ii} = Y;
         AllSampleDelays{ii} = SampleDelays;
         Ds{ii} = pdist(Y);
     end

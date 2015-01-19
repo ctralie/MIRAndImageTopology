@@ -1,4 +1,4 @@
-function [ d, D ] = getEditDist( s1, s2, type )
+function [ d, D ] = getEditDistMatlab( s1, s2, type )
     N = length(s1)+1;
     M = length(s2)+1;
     

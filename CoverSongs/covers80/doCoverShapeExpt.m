@@ -1,7 +1,7 @@
 TYPE_TIMELOOPHISTSCORR = 1;
 TYPE_LANDSCAPEKMEANSEDIT = 2;
 TYPE_DGMDTW = 3;
-TYPE = TYPE_DGMDTW;
+TYPE = TYPE_LANDSCAPEKMEANSEDIT;
 
 list1 = 'covers32k/list1.list';
 list2 = 'covers32k/list2.list';
@@ -81,21 +81,38 @@ elseif TYPE == TYPE_LANDSCAPEKMEANSEDIT
     save('R.mat', 'R');
 elseif TYPE == TYPE_DGMDTW
     for ii = 1:length(features1)
+        ii
         feats = load(sprintf('ftrsgeom/%s.mat', files1{ii}));
         features1{ii} = feats.Is;
+        for kk = 1:length(features1{ii})
+            if (isempty(features1{ii}{kk}))
+                continue;
+            end
+            [~, idx] = sort(features1{ii}{kk}(:, 2) - features1{ii}{kk}(:, 1), 'descend');
+            features1{ii}{kk} = features1{ii}{kk}(idx, :);
+        end
     end
     for ii = 1:length(features2)
+        ii
         feats = load(sprintf('ftrsgeom/%s.mat', files2{ii}));
         features2{ii} = feats.Is;
+        for kk = 1:length(features2{ii})
+            if (isempty(features2{ii}{kk}))
+                continue;
+            end            
+            [~, idx] = sort(features2{ii}{kk}(:, 2) - features2{ii}{kk}(:, 1), 'descend');
+            features2{ii}{kk} = features2{ii}{kk}(idx, :);
+        end
     end
     R = zeros(length(features1), length(features2));
     for ii = 1:length(features1)
-        for jj = 1:length(features2)
+        parfor jj = 1:length(features2)
+            fprintf(1, 'Doing (%i, %i)\n', ii, jj);
             R(ii, jj) = getDTWDist(features1{ii}, features2{jj}, 2);
             fprintf(1, '(%i, %i): %g\n', ii, jj, R(ii, jj));
         end
     end
-    [~, idx] = max(R, [], 2);
+    [~, idx] = min(R, [], 2);
     sum(idx' == 1:80)
     scatter(idx(ii), ii, 30, 'g', 'fill');
     save('R.mat', 'R');
