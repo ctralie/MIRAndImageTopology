@@ -39,7 +39,7 @@ function [ MFCCs, Fs, SampleDelays, PointClouds, IsRips, IsMorse, Dists, LEigs, 
 
         D = squareform(D);
         Dists(dindex, 1) = D(1, end);%Euclidean dist
-        Dists(dindex, 2) = sum(D(2, :));%Geodesic dist
+        Dists(dindex, 2) = sum(diag(D, 1));%Geodesic dist
         N = size(D, 1);
         NNeighbs = round(0.1*N*N);%Top 10% of neighbors
         LoopTimes = zeros(1, NNeighbs);
