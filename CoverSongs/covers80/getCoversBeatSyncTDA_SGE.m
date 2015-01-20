@@ -13,12 +13,14 @@ try
     
     
     bts = load(beatsFilename);
-    bts = bts.bts;    
-    [ MFCCs, Fs, SampleDelays, PointClouds, IsRips, IsMorse, Dists, LEigs, TimeLoopHists, bts ] = ...
-        getBeatSyncShapeFeatures( tda, filename, bts, DOPLOT );
-    
-    save(sprintf('ftrsgeom/%s.mat', files{songIdx}),  ...
-        'LEigs', 'IsRips', 'IsMorse', 'Dists', 'bts', 'SampleDelays', 'Fs', 'TimeLoopHists', 'MFCCs', 'PointClouds');
+    bts = bts.bts;
+    for BtsWin = [2, 4, 8]
+        fprintf(1, 'Doing BtsWin = %i...\n', BtsWin);
+		[ MFCCs, Fs, SampleDelays, PointClouds, IsRips, IsMorse, Dists, LEigs, TimeLoopHists, bts ] = ...
+		    getBeatSyncShapeFeatures( tda, filename, bts, DOPLOT );
+		save(sprintf('ftrsgeom/%s_%i.mat', files{songIdx}, BtsWin),  ...
+		    'LEigs', 'IsRips', 'IsMorse', 'Dists', 'bts', 'SampleDelays', 'Fs', 'TimeLoopHists', 'MFCCs', 'PointClouds');
+	end
 catch err
    err
 end

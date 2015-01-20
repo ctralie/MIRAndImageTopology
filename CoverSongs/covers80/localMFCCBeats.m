@@ -1,9 +1,11 @@
-function [AllSampleDelays, Ds, PointClouds] = localMFCCBeats( X, Fs, bts, NMFCCs)
+function [AllSampleDelays, Ds, PointClouds] = localMFCCBeats( X, Fs, bts, NMFCCs, BtsWin)
   	if nargin < 4
 		NMFCCs = 20;
     end
+    if nargin < 5
+    	BtsWin = 2;%Do sliding windows on 2 macrobeats by default
+   	end
     addpath('rastamat');
-    BtsWin = 2;%Do sliding windows on 2 macrobeats
     SamplesPerWin = 200;
     
     N = length(bts) - BtsWin - 1;

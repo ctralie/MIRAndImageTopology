@@ -1,11 +1,14 @@
 function [ MFCCs, Fs, SampleDelays, PointClouds, IsRips, IsMorse, Dists, LEigs, TimeLoopHists, bts ] = ...
-    getBeatSyncShapeFeatures( tda, filename, bts, DOPLOT )
+    getBeatSyncShapeFeatures( tda, filename, bts, DOPLOT, BtsWin )
 
     addpath('rastamat');    
     
     if nargin < 4
         DOPLOT = 0;
     end    
+    if nargin < 5
+    	BtsWin = 2;
+    end
     
     [X, Fs] = audioread(filename);
     
@@ -19,7 +22,7 @@ function [ MFCCs, Fs, SampleDelays, PointClouds, IsRips, IsMorse, Dists, LEigs, 
         %code
         [~, bts] = chrombeatftrs(X, Fs);
     end
-    [SampleDelays, Ds, PointClouds] = localMFCCBeats(X, Fs, bts);
+    [SampleDelays, Ds, PointClouds] = localMFCCBeats(X, Fs, bts, 20, BtsWin);
 
     %Setup time loop indices
     tmp = ones(length(SampleDelays{1}));
