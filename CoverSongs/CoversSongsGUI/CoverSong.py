@@ -13,7 +13,6 @@ from OpenGL.GLUT import *
 from OpenGL.arrays import vbo
 
 import matplotlib
-import matplotlib.pyplot as plt
 matplotlib.use('WXAgg')
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wx import NavigationToolbar2Wx
@@ -27,6 +26,10 @@ import scipy.io as sio
 from pylab import cm
 
 import subprocess
+
+#Constants
+DGM1EXTENT = 2.0
+RANGE0DPERS = 10
 
 def doCenteringAndPCA(X, ncomponents = 3):
 	#TODO: Add code to do centering
@@ -55,18 +58,28 @@ class CoverSong(object):
 		self.TimeLoopHists = X['TimeLoopHists'].flatten() #Cell Array
 		self.bts = X['bts'].flatten() #1D Matrix
 		self.LEigs = X['LEigs'].flatten() #Cell Array
-		self.Dists = X['Dists'] #2D Matrix
+		self.LEigs = X['LEigs'].flatten() #2D Matrix
 		self.SampleDelays = X['SampleDelays'].flatten()/self.Fs #Cell array
 		self.IsRips = X['IsRips'].flatten() #Cell Array
 		self.IsMorse = X['IsMorse'].flatten() #Cell Array
 		self.MFCCs = X['MFCCs'] #2D Matrix
 		self.PointClouds = X['PointClouds'].flatten()
+		self.Dists = X['Dists']
 		self.SampleStartTimes = np.zeros(self.SampleDelays.shape[0])
 		self.BeatStartIdx = np.zeros(self.SampleDelays.shape[0], dtype='int32')
 		
 		for i in range(self.SampleDelays.shape[0]):
 			self.SampleDelays[i] = self.SampleDelays[i].flatten()
 			self.SampleStartTimes[i] = self.SampleDelays[i][0]
+		
+		#Sort the DGMs0 by persistence since the birth time doesn't
+		#really matter
+		IsMorse = []
+		for i in range(self.IsMorse.shape[0]):
+			P = self.IsMorse[1, :] - self.IsMorse[0, :]
+			P = np.sort(P)
+			P = P[::-1]
+			IsMorse.append(P)
 		
 		#Step 2: Setup a vertex buffer for this song
 		N = self.PointClouds.shape[0]
@@ -104,40 +117,28 @@ class CoverSong(object):
 
 class CoverSongFilesDialog(wx.Dialog):
 	def __init__(self, *args, **kw):
-		super(DensityThresholdDialog, self).__init__(*args, **kw)
+		super(CoverSongFilesDialog, self).__init__(*args, **kw)
 		#Remember parameters from last time
-		self.matfilename = ""
-		self.soundfilename = ""
+		self.matfilename = None
+		self.soundfilename = None
 		self.InitUI()
 		self.SetSize((250, 200))
 		self.SetTitle("Load Cover Song Data")
 
 	def InitUI(self):
-		pnl = wx.Panel(self)
 		vbox = wx.BoxSizer(wx.VERTICAL)
-
-		sb = wx.StaticBox(pnl, label='CoverSongFiles')
-		sbs = wx.StaticBoxSizer(sb, orient=wx.VERTICAL)
 		
 		hbox1 = wx.BoxSizer(wx.HORIZONTAL)
-		matfileButton = wx.Button(self, -1, "Choose Mat File")
-		self.Bind(wx.EVT_BUTTON, self.OnChooseMatfile, matfileButton)
+		matfileButton = wx.Button(self, label="Choose Mat File")
 		self.matfileTxt = wx.TextCtrl(self)
-		self.matfileTxt.SetValue(self.matfilename)
-		hbox1.Add(self.matfileTxt, flag=wx.LEFT, border=5)
 		hbox1.Add(matfileButton)
-		sbs.Add(hbox1)
+		hbox1.Add(self.matfileTxt, flag=wx.RIGHT, border=5)
 
 		hbox2 = wx.BoxSizer(wx.HORIZONTAL)
-		soundfileButton = wx.Button(self, -1, "Choose Sound File")
-		self.Bind(wx.EVT_BUTTON, self.OnChooseSoundfile, soundfileButton)
+		soundfileButton = wx.Button(self, label='Choose Sound File')
 		self.soundfileTxt = wx.TextCtrl(self)
-		self.soundfileTxt.SetValue(self.soundfilename)
-		hbox2.Add(self.soundfileTxt, flag=wx.LEFT, border=5)
 		hbox2.Add(soundfileButton)
-		sbs.Add(hbox2)
-
-		pnl.SetSizer(sbs)
+		hbox2.Add(self.soundfileTxt, flag=wx.RIGHT, border=5)
 
 		hboxexit = wx.BoxSizer(wx.HORIZONTAL)
 		okButton = wx.Button(self, label='Ok')
@@ -145,8 +146,10 @@ class CoverSongFilesDialog(wx.Dialog):
 		hboxexit.Add(okButton)
 		hboxexit.Add(closeButton, flag=wx.LEFT, border=5)
 
-		vbox.Add(pnl, proportion=1, 
-		flag=wx.ALL|wx.EXPAND, border=5)
+		vbox.Add(hbox1, 
+		flag=wx.ALIGN_CENTER|wx.TOP|wx.BOTTOM, border=10)
+		vbox.Add(hbox2, 
+		flag=wx.ALIGN_CENTER|wx.TOP|wx.BOTTOM, border=10)
 		vbox.Add(hboxexit, 
 		flag=wx.ALIGN_CENTER|wx.TOP|wx.BOTTOM, border=10)
 
@@ -154,6 +157,9 @@ class CoverSongFilesDialog(wx.Dialog):
 
 		okButton.Bind(wx.EVT_BUTTON, self.OnClose)
 		closeButton.Bind(wx.EVT_BUTTON, self.OnClose)
+		matfileButton.Bind(wx.EVT_BUTTON, self.OnChooseMatfile)
+		soundfileButton.Bind(wx.EVT_BUTTON, self.OnChooseSoundfile)
+		
 
 	def OnChooseMatfile(self, evt):
 		dlg = wx.FileDialog(self, "Choose a file", ".", "", "*", wx.OPEN)
@@ -162,6 +168,7 @@ class CoverSongFilesDialog(wx.Dialog):
 			dirname = dlg.GetDirectory()
 			filepath = os.path.join(dirname, filename)
 			self.matfilename = filepath
+			self.matfileTxt.SetValue(filepath)
 		dlg.Destroy()
 		return
 
@@ -172,6 +179,7 @@ class CoverSongFilesDialog(wx.Dialog):
 			dirname = dlg.GetDirectory()
 			filepath = os.path.join(dirname, filename)
 			self.soundfilename = filepath
+			self.soundfileTxt.SetValue(filepath)
 		dlg.Destroy()
 		return
 
@@ -179,28 +187,64 @@ class CoverSongFilesDialog(wx.Dialog):
 		self.Destroy()
 
 class CoverSongBeatPlots(wx.Panel):
-	def __init__(self, coverSong):
+	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
 		self.figure = Figure()
-		self.axes = self.figure.add_subplot(111)
+		
+		self.FigDists = self.figure.add_subplot(222)
+		self.DGM1 = self.figure.add_subplot(223)
+		self.DGM0 = self.figure.add_subplot(224)
+		
 		self.canvas = FigureCanvas(self, -1, self.figure)
 		self.sizer = wx.BoxSizer(wx.VERTICAL)
-		self.sizer.Add(self.canvas, 1, wx.LEFT | wx.TOP | wx.GROW)
+		self.sizer.Add(self.canvas, 1, wx.LEFT | wx.TOP)
 		self.SetSizer(self.sizer)
 		self.Fit()
+		self.coverSong = None
+		self.currBeat = 0
+		self.draw()
 
 	def updateCoverSong(self, newCoverSong):
 		self.coverSong = newCoverSong
-		if self.coverSong:
-			self.draw()
+		self.draw()
+	
+	def updateBeat(self, newBeat):
+		self.currBeat = newBeat
+		self.draw()
 
 	def draw(self):
-		t = np.arange(0.0, 3.0, 0.01)
-		s = np.sin(2 * pi * t)
-		self.axes.plot(t, s)
+		if self.coverSong:
+			if self.currBeat >= len(self.bts):
+				return
+			I1 = self.coverSong.IsRips[self.currBeat]
+			I0 = self.coverSong.IsMorse[self.currBeat]
+			D = self.coverSong.Dists[self.currBeat, :]
+			#Bar plot distances
+			self.FigDists.bar([0, 1], D, color='r')
+			self.FigDists.xticks([0.5, 1.5], ('Euc', 'Geo'))
+			self.FigDists.ylim([0, RANGE0DPERS])
+			#TODO: Also plot letter here
+			self.FigDists.title('Distances')
+			
+			#Plot DGM1
+			if I1.shape[0] > 0:
+				self.DGM1.plot(I1[:, 0], I1[:, 1], 'b.')
+				self.DGM1.hold(True)
+				maxVal = max(np.max(I1) + 0.2, DGM1EXTENT)
+				self.DGM1.plot([0, maxVal], [0, maxVal], 'r')
+			else:
+				self.DGM1.plot([0, DGM1EXTENT], [0, DGM1EXTENT], 'r')
+			self.DGM1.title('DGM1')
+			#Plot DGM0
+			if len(I0) > 0:
+				self.DGM0.plot(I0)
+				self.DGM0.xlim([0, 60])
+				self.DGM0.ylim([0, 1])
+				self.DGM0.hold(True)
+			self.DGM0.title('DGM0')
 
 class CoverSongWaveformPlots(wx.Panel):
-	def __init__(self, coverSong = None):
+	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
 		self.figure = Figure()
 		self.axes = self.figure.add_subplot(111)
@@ -209,8 +253,9 @@ class CoverSongWaveformPlots(wx.Panel):
 		self.sizer.Add(self.canvas, 1, wx.LEFT | wx.TOP | wx.GROW)
 		self.SetSizer(self.sizer)
 		self.Fit()
-		self.updateCoverSong(coverSong)
+		self.coverSong = None
 		self.currPos = 0 #Current position in seconds
+		self.draw()
 
 	def updateCoverSong(self, newCoverSong):
 		self.coverSong = newCoverSong
@@ -226,6 +271,8 @@ class CoverSongWaveformPlots(wx.Panel):
 
 	def draw(self):
 		if self.coverSong:
+			if self.currBeat >= len(self.bts):
+				return
 			#Plot waveform
 			self.axes.plot(t, coverSong.waveform, 'b')
 			self.axes.hold(True)

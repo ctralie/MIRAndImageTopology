@@ -115,7 +115,8 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 		glClearColor(0.0, 0.0, 0.0, 0.0)
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 		
-		if len(self.X) > 0:
+		#if len(self.X) > 0:
+		if False:
 			glDisable(GL_LIGHTING)
 			glColor3f(1, 0, 0)
 			glPointSize(3)
@@ -208,16 +209,35 @@ class CoverSongsFrame(wx.Frame):
 		menuBar = wx.MenuBar()
 		menuBar.Append(filemenu,"&File") # Adding the "filemenu" to the MenuBar
 		self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
+		
+		#Vertical Buttons at top
+		chooseBeatButtons = wx.BoxSizer(wx.HORIZONTAL)
+		backButton = wx.Button(self, label = '<== BACK')
+		repeatButton = wx.Button(self, label = 'REPEAT')
+		nextButton = wx.Button(self, label = 'NEXT ==>')
+		playPauseButton = wx.Button(self, label = 'PLAY/PAUSE')
+		chooseBeatButtons.Add(backButton)
+		chooseBeatButtons.Add(repeatButton)
+		chooseBeatButtons.Add(nextButton)
+		chooseBeatButtons.Add(playPauseButton)
+		
+		#GLCanvas and beat plots stuff
+		BeatPlotsRow = wx.BoxSizer(wx.HORIZONTAL)
 		self.glcanvas = LoopDittyCanvas(self)
+		BeatPlotsRow.Add(self.glcanvas, 1, wx.LEFT | wx.TOP | wx.GROW)
+		self.beatPlots = CoverSongBeatPlots(self)
+		BeatPlotsRow.Add(self.beatPlots, 0, wx.RIGHT)
 		
-		self.rightPanel = wx.BoxSizer(wx.VERTICAL)
+		#Waveform Plots
+		self.waveform1 = CoverSongWaveformPlots(self)
+		self.waveform2 = CoverSongWaveformPlots(self)
 		
-		
-		
-		#Finally add the two main panels to the sizer		
-		self.sizer = wx.BoxSizer(wx.HORIZONTAL)
-		self.sizer.Add(self.glcanvas, 2, wx.EXPAND)
-		self.sizer.Add(self.rightPanel, 0, wx.EXPAND)
+		#Add everything to a vertical box sizer	
+		self.sizer = wx.BoxSizer(wx.VERTICAL)
+		self.sizer.Add(chooseBeatButtons, 0, wx.EXPAND)
+		self.sizer.Add(BeatPlotsRow, 0, wx.EXPAND)
+		self.sizer.Add(self.waveform1, 0, wx.EXPAND)
+		self.sizer.Add(self.waveform2, 0, wx.EXPAND)
 		
 		self.SetSizer(self.sizer)
 		self.Layout()
@@ -227,13 +247,19 @@ class CoverSongsFrame(wx.Frame):
 		dlg = CoverSongFilesDialog(self)
 		dlg.ShowModal()
 		dlg.Destroy()
-		self.glcanvas.coverSong1 = CoverSong(self.matfilename, self.soundfilename)
+		if dlg.matfilename and dlg.soundfilename:
+			self.glcanvas.coverSong1 = CoverSong(dlg.matfilename, dlg.soundfilename)
+			self.waveform1.updateCoverSong(self.glcanvas.coverSong1)
+			self.selectedCover = self.glcanvas.coverSong1
 
 	def OnLoadCoverSong2(self, evt):
 		dlg = CoverSongFilesDialog(self)
 		dlg.ShowModal()
 		dlg.Destroy()
-		self.glcanvas.coverSong2 = CoverSong(self.matfilename, self.soundfilename)
+		if dlg.matfilename and dlg.soundfilename:
+			self.glcanvas.coverSong2 = CoverSong(dlg.matfilename, dlg.soundfilename)
+			self.waveform2.updateCoverSong(self.glcanvas.coverSong2)
+			self.selectedCover = self.glcanvas.coverSong2
 
 if __name__ == "__main__":
 	app = wx.App()
