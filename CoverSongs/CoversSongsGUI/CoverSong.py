@@ -77,7 +77,7 @@ class CoverSong(object):
 		#really matter
 		IsMorse = []
 		for i in range(self.IsMorse.shape[0]):
-			P = self.IsMorse[i][1, :] - self.IsMorse[i][0, :]
+			P = self.IsMorse[i][:, 1] - self.IsMorse[i][:, 0]
 			P = np.sort(P)
 			P = P[::-1]
 			IsMorse.append(P)
@@ -247,6 +247,7 @@ class CoverSongBeatPlots(wx.Panel):
 			self.DGM0.cla()
 			if len(I0) > 0:
 				self.DGM0.plot(I0)
+				print I0
 				#self.DGM0.xlim([0, 60])
 				#self.DGM0.ylim([0, 1])
 				self.DGM0.hold(True)
