@@ -20,6 +20,8 @@ from OpenGL.arrays import vbo
 
 from CoverSong import *
 
+import pygame
+
 DEFAULT_SIZE = wx.Size(1200, 800)
 DEFAULT_POS = wx.Point(10, 10)
 
@@ -47,9 +49,6 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 		self.selectedCover = None
 		
 		#Point cloud and playing information
-		self.beatNum = 0
-		self.Playing = False
-		self.PlayIDX = 0
 		self.DrawEdges = True
 		
 		self.GLinitialized = False
@@ -89,19 +88,6 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 			self.GLinitialized = True
 		self.repaint()
 
-	def startAnimation(self, evt):
-		if len(self.SampleDelays) > 0:
-			print "Playing %s"%self.filename
-			self.Playing = True
-			self.PlayIDX = 0
-			pygame.mixer.quit()
-			print "Starting mixer at %i"%self.Fs
-			pygame.mixer.init(frequency = self.Fs)
-			s = pygame.mixer.Sound(self.filename)
-			s.play()
-			self.startTime = time.time()
-			self.Refresh()
-
 	def repaint(self):
 		#Set up projection matrix
 		glMatrixMode(GL_PROJECTION)
@@ -115,29 +101,40 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 		glClearColor(0.0, 0.0, 0.0, 0.0)
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 		
-		#if len(self.X) > 0:
-		if False:
+		if self.selectedCover:
 			glDisable(GL_LIGHTING)
 			glColor3f(1, 0, 0)
 			glPointSize(3)
-			NPoints = self.X.shape[0]
-			StartPoint = 0
-			EndPoint = self.X.shape[0]-1
-
-			self.vbo.bind()
-			glEnableClientState(GL_VERTEX_ARRAY)
-			glVertexPointerf( self.vbo )
+			currBeat = self.selectedCover.currBeat
+			StartPoint = self.selectedCover.BeatStartIdx[currBeat]
+			#Find endpoint based on how long sound has been playing
+			startTime = self.selectedCover.SampleDelays[currBeat][0] 
+			EndTime = startTime + float(pygame.mixer.music.get_pos()) / 1000.0
+			EndPoint = StartPoint
+			i = 0
+			while self.selectedCover.SampleDelays[currBeat][i] < EndTime:
+				i = i+1
+				EndPoint = EndPoint + 1
+				if i >= 200: #TODO: Generalize this
+					pygame.mixer.music.stop()
+					break
 			
-			self.XColorsVBO.bind()
+			#print "startTime = %g, EndTime = %g, StartPoint = %i, EndPoint = %i"%(startTime, EndTime, StartPoint, EndPoint)
+			
+			self.selectedCover.YVBO.bind()
+			glEnableClientState(GL_VERTEX_ARRAY)
+			glVertexPointerf( self.selectedCover.YVBO )
+			
+			self.selectedCover.YColorsVBO.bind()
 			glEnableClientState(GL_COLOR_ARRAY)
-			glColorPointer(3, GL_FLOAT, 0, self.XColorsVBO)
+			glColorPointer(3, GL_FLOAT, 0, self.selectedCover.YColorsVBO)
 			
 			if self.DrawEdges:
-				glDrawArrays(GL_LINES, StartPoint, EndPoint - StartPoint + 1)
-				glDrawArrays(GL_LINES, StartPoint+1, EndPoint)
+				glDrawArrays(GL_LINES, StartPoint, EndPoint - StartPoint)
+				glDrawArrays(GL_LINES, StartPoint+1, EndPoint - StartPoint)
 			glDrawArrays(GL_POINTS, StartPoint, EndPoint - StartPoint + 1)
-			self.XColorsVBO.unbind()
-			self.vbo.unbind()
+			self.selectedCover.YVBO.unbind()
+			self.selectedCover.YColorsVBO.unbind()
 			glDisableClientState(GL_VERTEX_ARRAY)
 			glDisableClientState(GL_COLOR_ARRAY)
 		self.SwapBuffers()
@@ -194,6 +191,7 @@ class CoverSongsFrame(wx.Frame):
 		#Sound variables
 		self.soundSamples = np.array([])
 		self.Fs = 22050
+		self.Playing = True
 		
 		self.size = size
 		self.pos = pos
@@ -220,11 +218,16 @@ class CoverSongsFrame(wx.Frame):
 		chooseBeatButtons.Add(repeatButton)
 		chooseBeatButtons.Add(nextButton)
 		chooseBeatButtons.Add(playPauseButton)
+		backButton.Bind(wx.EVT_BUTTON, self.OnBackButton)
+		repeatButton.Bind(wx.EVT_BUTTON, self.OnRepeatButton)
+		nextButton.Bind(wx.EVT_BUTTON, self.OnNextButton)
+		playPauseButton.Bind(wx.EVT_BUTTON, self.OnPlayPauseButton)
 		
 		#GLCanvas and beat plots stuff
 		BeatPlotsRow = wx.BoxSizer(wx.HORIZONTAL)
 		self.glcanvas = LoopDittyCanvas(self)
 		BeatPlotsRow.Add(self.glcanvas, 1, wx.LEFT | wx.TOP | wx.GROW)
+		#self.beatPlotsFrame = wx.Frame(self, title='Beat Plots')
 		self.beatPlots = CoverSongBeatPlots(self)
 		BeatPlotsRow.Add(self.beatPlots, 0, wx.RIGHT)
 		
@@ -249,8 +252,11 @@ class CoverSongsFrame(wx.Frame):
 		dlg.Destroy()
 		if dlg.matfilename and dlg.soundfilename:
 			self.glcanvas.coverSong1 = CoverSong(dlg.matfilename, dlg.soundfilename)
-			self.waveform1.updateCoverSong(self.glcanvas.coverSong1)
-			self.selectedCover = self.glcanvas.coverSong1
+			#self.waveform1.updateCoverSong(self.glcanvas.coverSong1)
+			self.glcanvas.selectedCover = self.glcanvas.coverSong1
+			self.beatPlots.updateCoverSong(self.glcanvas.selectedCover)
+			pygame.mixer.init(frequency=self.glcanvas.selectedCover.Fs)
+			pygame.mixer.music.load(self.glcanvas.selectedCover.soundfilename)
 
 	def OnLoadCoverSong2(self, evt):
 		dlg = CoverSongFilesDialog(self)
@@ -258,10 +264,42 @@ class CoverSongsFrame(wx.Frame):
 		dlg.Destroy()
 		if dlg.matfilename and dlg.soundfilename:
 			self.glcanvas.coverSong2 = CoverSong(dlg.matfilename, dlg.soundfilename)
-			self.waveform2.updateCoverSong(self.glcanvas.coverSong2)
-			self.selectedCover = self.glcanvas.coverSong2
+			#self.waveform2.updateCoverSong(self.glcanvas.coverSong2)
+			self.glcanvas.selectedCover = self.glcanvas.coverSong2
+			self.beatPlots.updateCoverSong(self.glcanvas.selectedCover)
+			pygame.mixer.init(frequency=self.glcanvas.selectedCover.Fs)
+			pygame.mixer.music.load(self.glcanvas.selectedCover.soundfilename)
+	
+	def OnBackButton(self, evt):
+		if self.glcanvas.selectedCover:
+			self.glcanvas.selectedCover.changeBeat(-1)
+			self.beatPlots.draw() #Update the beat plots
+			self.glcanvas.startTime = self.glcanvas.selectedCover.SampleStartTimes[self.glcanvas.selectedCover.currBeat]
+			pygame.mixer.music.play(0, self.glcanvas.startTime)
+			self.glcanvas.Refresh()
+
+	def OnRepeatButton(self, evt):
+		if self.glcanvas.selectedCover:
+			self.glcanvas.startTime = self.glcanvas.selectedCover.SampleStartTimes[self.glcanvas.selectedCover.currBeat]
+			pygame.mixer.music.play(0, self.glcanvas.startTime)
+			self.glcanvas.Refresh()
+
+	def OnNextButton(self, evt):
+		if self.glcanvas.selectedCover:
+			self.glcanvas.selectedCover.changeBeat(1)
+			self.beatPlots.draw() #Update the beat plots
+			self.glcanvas.startTime = self.glcanvas.selectedCover.SampleStartTimes[self.glcanvas.selectedCover.currBeat]
+			pygame.mixer.music.play(0, self.glcanvas.startTime)
+			self.glcanvas.Refresh()
+	
+	def OnPlayPauseButton(self, evt):
+		self.Playing = not self.Playing
+		if not self.Playing:
+			pygame.mixer.music.pause()
+		#TODO: Start it up again when it's playing
 
 if __name__ == "__main__":
+	pygame.init()
 	app = wx.App()
 	frame = CoverSongsFrame(None, -1, 'Cover Songs GUI')
 	frame.Show(True)

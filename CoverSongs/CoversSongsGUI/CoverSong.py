@@ -23,6 +23,7 @@ import wx
 from wx import glcanvas
 import numpy as np
 import scipy.io as sio
+from scipy.io import wavfile
 from pylab import cm
 
 import subprocess
@@ -76,10 +77,11 @@ class CoverSong(object):
 		#really matter
 		IsMorse = []
 		for i in range(self.IsMorse.shape[0]):
-			P = self.IsMorse[1, :] - self.IsMorse[0, :]
+			P = self.IsMorse[i][1, :] - self.IsMorse[i][0, :]
 			P = np.sort(P)
 			P = P[::-1]
 			IsMorse.append(P)
+		self.IsMorse = IsMorse
 		
 		#Step 2: Setup a vertex buffer for this song
 		N = self.PointClouds.shape[0]
@@ -113,7 +115,16 @@ class CoverSong(object):
 			self.Fs, self.waveform = wavfile.read("temp.wav")
 		else:
 			self.Fs, self.waveform = wavfile.read(soundfilename)
+		if self.waveform.shape[1] > 1:
+			self.waveform = self.waveform[:, 0]
+		self.currBeat = 0
 		
+	def changeBeat(self, dBeat):
+		self.currBeat = self.currBeat + dBeat
+		if self.currBeat < 0:
+			self.currBeat = 0
+		if self.currBeat >= len(self.SampleDelays):
+			self.currBeat = len(self.SampleDelays) - 1
 
 class CoverSongFilesDialog(wx.Dialog):
 	def __init__(self, *args, **kw):
@@ -189,7 +200,7 @@ class CoverSongFilesDialog(wx.Dialog):
 class CoverSongBeatPlots(wx.Panel):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
-		self.figure = Figure()
+		self.figure = Figure((5.0, 5.0), dpi = 100)
 		
 		self.FigDists = self.figure.add_subplot(222)
 		self.DGM1 = self.figure.add_subplot(223)
@@ -201,32 +212,29 @@ class CoverSongBeatPlots(wx.Panel):
 		self.SetSizer(self.sizer)
 		self.Fit()
 		self.coverSong = None
-		self.currBeat = 0
 		self.draw()
 
 	def updateCoverSong(self, newCoverSong):
 		self.coverSong = newCoverSong
 		self.draw()
-	
-	def updateBeat(self, newBeat):
-		self.currBeat = newBeat
-		self.draw()
 
 	def draw(self):
 		if self.coverSong:
-			if self.currBeat >= len(self.bts):
+			if self.coverSong.currBeat >= len(self.coverSong.SampleDelays):
 				return
-			I1 = self.coverSong.IsRips[self.currBeat]
-			I0 = self.coverSong.IsMorse[self.currBeat]
-			D = self.coverSong.Dists[self.currBeat, :]
+			I1 = self.coverSong.IsRips[self.coverSong.currBeat]
+			I0 = self.coverSong.IsMorse[self.coverSong.currBeat]
+			D = self.coverSong.Dists[self.coverSong.currBeat, :]
 			#Bar plot distances
+			self.FigDists.cla()
 			self.FigDists.bar([0, 1], D, color='r')
-			self.FigDists.xticks([0.5, 1.5], ('Euc', 'Geo'))
-			self.FigDists.ylim([0, RANGE0DPERS])
+			#self.FigDists.xticks([0.5, 1.5], ('Euc', 'Geo'))
+			#self.FigDists.ylim([0, RANGE0DPERS])
 			#TODO: Also plot letter here
-			self.FigDists.title('Distances')
+			#self.FigDists.title('Distances')
 			
 			#Plot DGM1
+			self.DGM1.cla()
 			if I1.shape[0] > 0:
 				self.DGM1.plot(I1[:, 0], I1[:, 1], 'b.')
 				self.DGM1.hold(True)
@@ -234,19 +242,21 @@ class CoverSongBeatPlots(wx.Panel):
 				self.DGM1.plot([0, maxVal], [0, maxVal], 'r')
 			else:
 				self.DGM1.plot([0, DGM1EXTENT], [0, DGM1EXTENT], 'r')
-			self.DGM1.title('DGM1')
+			#self.DGM1.title('DGM1')
 			#Plot DGM0
+			self.DGM0.cla()
 			if len(I0) > 0:
 				self.DGM0.plot(I0)
-				self.DGM0.xlim([0, 60])
-				self.DGM0.ylim([0, 1])
+				#self.DGM0.xlim([0, 60])
+				#self.DGM0.ylim([0, 1])
 				self.DGM0.hold(True)
-			self.DGM0.title('DGM0')
+			#self.DGM0.title('DGM0')
+		self.canvas.draw()
 
 class CoverSongWaveformPlots(wx.Panel):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
-		self.figure = Figure()
+		self.figure = Figure((10.0, 1.0), dpi=100)
 		self.axes = self.figure.add_subplot(111)
 		self.canvas = FigureCanvas(self, -1, self.figure)
 		self.sizer = wx.BoxSizer(wx.VERTICAL)
@@ -262,7 +272,8 @@ class CoverSongWaveformPlots(wx.Panel):
 		if self.coverSong:
 			self.y0 = np.min(self.coverSong.waveform)
 			self.y1 = np.max(self.coverSong.waveform)
-			self.t = np.arange(0, self.coverSong.waveform.shape[0])	
+			self.t = np.arange(0, self.coverSong.waveform.shape[0])
+			self.currPos = 0
 			self.draw()
 
 	def updatePos(self, newPos):
@@ -271,13 +282,16 @@ class CoverSongWaveformPlots(wx.Panel):
 
 	def draw(self):
 		if self.coverSong:
-			if self.currBeat >= len(self.bts):
+			if self.currPos >= len(self.coverSong.waveform):
 				return
 			#Plot waveform
-			self.axes.plot(t, coverSong.waveform, 'b')
+			print "Drawing waveform..."
+			print self.coverSong.waveform
+			self.axes.plot(self.t, self.coverSong.waveform, 'b')
 			self.axes.hold(True)
 			#Plot current marker in song
-			self.axes.plot(np.array([self.currPos, self.currPos]), np.array([self.y0, self.y1]), 'g')		
+			self.axes.plot(np.array([self.currPos, self.currPos]), np.array([self.y0, self.y1]), 'g')
+		self.canvas.draw()	
 
 if __name__ == '__main__':
 	c = CoverSong('CaliforniaLove_2.mat', 'CaliforniaLove.mp3')
