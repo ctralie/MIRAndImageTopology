@@ -24,19 +24,26 @@ from wx import glcanvas
 import numpy as np
 import scipy.io as sio
 from scipy.io import wavfile
+import scipy.spatial.distance as distance
 from pylab import cm
 
 import subprocess
 
 #Constants
 DGM1EXTENT = 2.0
-RANGE0DPERS = 10
+MAXGEODESIC = 12
 
 def doCenteringAndPCA(X, ncomponents = 3):
-	#TODO: Add code to do centering
+	#Subtract mean
 	X = X - np.tile(np.mean(X, 0), (X.shape[0], 1))
 	X[np.isinf(X)] = 0
 	X[np.isnan(X)] = 0
+	#Normalize to sphere
+	XNorm = np.sqrt(np.sum(X*X, 1))
+	XNorm = XNorm.reshape((len(XNorm), 1))
+	XNorm = np.tile(XNorm, (1, X.shape[1]))
+	X = X/XNorm
+	#Do PCA
 	D = (X.T).dot(X)
 	(lam, eigvecs) = np.linalg.eig(D)
 	lam = np.abs(lam)
@@ -68,7 +75,8 @@ class CoverSong(object):
 		self.Dists = X['Dists']
 		self.SampleStartTimes = np.zeros(self.SampleDelays.shape[0])
 		self.BeatStartIdx = np.zeros(self.SampleDelays.shape[0], dtype='int32')
-		
+		self.VarsExplained = np.zeros(self.SampleDelays.shape[0], dtype='int32')		
+
 		for i in range(self.SampleDelays.shape[0]):
 			self.SampleDelays[i] = self.SampleDelays[i].flatten()
 			self.SampleStartTimes[i] = self.SampleDelays[i][0]
@@ -90,6 +98,7 @@ class CoverSong(object):
 		cmConvert = cm.get_cmap('jet')
 		print "Doing PCA on all windows..."
 		(self.Y, varExplained) = doCenteringAndPCA(self.PointClouds[0])
+		self.VarsExplained
 		self.YColors = cmConvert(np.linspace(0, 1, self.Y.shape[0]))[:, 0:3]
 		
 		for i in range(1, self.PointClouds.shape[0]):
@@ -202,6 +211,7 @@ class CoverSongBeatPlots(wx.Panel):
 		wx.Panel.__init__(self, parent)
 		self.figure = Figure((5.0, 5.0), dpi = 100)
 		
+		self.FigDMat = self.figure.add_subplot(221)
 		self.FigDists = self.figure.add_subplot(222)
 		self.DGM1 = self.figure.add_subplot(223)
 		self.DGM0 = self.figure.add_subplot(224)
@@ -224,14 +234,22 @@ class CoverSongBeatPlots(wx.Panel):
 				return
 			I1 = self.coverSong.IsRips[self.coverSong.currBeat]
 			I0 = self.coverSong.IsMorse[self.coverSong.currBeat]
-			D = self.coverSong.Dists[self.coverSong.currBeat, :]
+			EucGeo = self.coverSong.Dists[self.coverSong.currBeat, :]
+			
+			#Distance matrix
+			idx = self.coverSong.BeatStartIdx[self.coverSong.currBeat]
+			N = len(self.coverSong.SampleDelays[self.coverSong.currBeat])
+			D = distance.squareform(distance.pdist(self.coverSong.Y[idx:idx+N, :]))
+			self.FigDMat.imshow(D)
+			
 			#Bar plot distances
 			self.FigDists.cla()
-			self.FigDists.bar([0, 1], D, color='r')
-			#self.FigDists.xticks([0.5, 1.5], ('Euc', 'Geo'))
-			#self.FigDists.ylim([0, RANGE0DPERS])
+			self.FigDists.bar([0, 1], EucGeo, color='r')
+			self.FigDists.set_xticks([0.5, 1.5])
+			self.FigDists.set_xticklabels(('Euc', 'Geo'))
+			self.FigDists.set_ylim([0, MAXGEODESIC])
 			#TODO: Also plot letter here
-			#self.FigDists.title('Distances')
+			self.FigDists.set_title('Distances')
 			
 			#Plot DGM1
 			self.DGM1.cla()
@@ -242,16 +260,15 @@ class CoverSongBeatPlots(wx.Panel):
 				self.DGM1.plot([0, maxVal], [0, maxVal], 'r')
 			else:
 				self.DGM1.plot([0, DGM1EXTENT], [0, DGM1EXTENT], 'r')
-			#self.DGM1.title('DGM1')
+			self.DGM1.set_title('DGM1')
 			#Plot DGM0
 			self.DGM0.cla()
 			if len(I0) > 0:
 				self.DGM0.plot(I0)
-				print I0
-				#self.DGM0.xlim([0, 60])
-				#self.DGM0.ylim([0, 1])
+				self.DGM0.set_xlim([0, 60])
+				self.DGM0.set_ylim([0, 1])
 				self.DGM0.hold(True)
-			#self.DGM0.title('DGM0')
+			self.DGM0.set_title('DGM0')
 		self.canvas.draw()
 
 class CoverSongWaveformPlots(wx.Panel):
@@ -287,7 +304,6 @@ class CoverSongWaveformPlots(wx.Panel):
 				return
 			#Plot waveform
 			print "Drawing waveform..."
-			print self.coverSong.waveform
 			self.axes.plot(self.t, self.coverSong.waveform, 'b')
 			self.axes.hold(True)
 			#Plot current marker in song

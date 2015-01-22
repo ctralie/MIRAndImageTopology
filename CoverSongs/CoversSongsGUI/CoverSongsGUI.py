@@ -115,7 +115,7 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 			while self.selectedCover.SampleDelays[currBeat][i] < EndTime:
 				i = i+1
 				EndPoint = EndPoint + 1
-				if i >= 200: #TODO: Generalize this
+				if i >= len(self.selectedCover.SampleDelays[currBeat]) - 1:
 					pygame.mixer.music.stop()
 					break
 			
@@ -211,17 +211,14 @@ class CoverSongsFrame(wx.Frame):
 		#Vertical Buttons at top
 		chooseBeatButtons = wx.BoxSizer(wx.HORIZONTAL)
 		backButton = wx.Button(self, label = '<== BACK')
-		repeatButton = wx.Button(self, label = 'REPEAT')
+		playButton = wx.Button(self, label = 'PLAY')
 		nextButton = wx.Button(self, label = 'NEXT ==>')
-		playPauseButton = wx.Button(self, label = 'PLAY/PAUSE')
 		chooseBeatButtons.Add(backButton)
-		chooseBeatButtons.Add(repeatButton)
+		chooseBeatButtons.Add(playButton)
 		chooseBeatButtons.Add(nextButton)
-		chooseBeatButtons.Add(playPauseButton)
 		backButton.Bind(wx.EVT_BUTTON, self.OnBackButton)
-		repeatButton.Bind(wx.EVT_BUTTON, self.OnRepeatButton)
+		playButton.Bind(wx.EVT_BUTTON, self.OnPlayButton)
 		nextButton.Bind(wx.EVT_BUTTON, self.OnNextButton)
-		playPauseButton.Bind(wx.EVT_BUTTON, self.OnPlayPauseButton)
 		
 		#GLCanvas and beat plots stuff
 		BeatPlotsRow = wx.BoxSizer(wx.HORIZONTAL)
@@ -278,7 +275,7 @@ class CoverSongsFrame(wx.Frame):
 			pygame.mixer.music.play(0, self.glcanvas.startTime)
 			self.glcanvas.Refresh()
 
-	def OnRepeatButton(self, evt):
+	def OnPlayButton(self, evt):
 		if self.glcanvas.selectedCover:
 			self.glcanvas.startTime = self.glcanvas.selectedCover.SampleStartTimes[self.glcanvas.selectedCover.currBeat]
 			pygame.mixer.music.play(0, self.glcanvas.startTime)
@@ -291,12 +288,6 @@ class CoverSongsFrame(wx.Frame):
 			self.glcanvas.startTime = self.glcanvas.selectedCover.SampleStartTimes[self.glcanvas.selectedCover.currBeat]
 			pygame.mixer.music.play(0, self.glcanvas.startTime)
 			self.glcanvas.Refresh()
-	
-	def OnPlayPauseButton(self, evt):
-		self.Playing = not self.Playing
-		if not self.Playing:
-			pygame.mixer.music.pause()
-		#TODO: Start it up again when it's playing
 
 if __name__ == "__main__":
 	pygame.init()
