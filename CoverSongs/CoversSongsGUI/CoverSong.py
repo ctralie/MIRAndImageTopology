@@ -61,6 +61,7 @@ class CoverSong(object):
 		
 		#Step 1: Load in precomputed beat information
 		self.title = matfilename.split('.mat')[0]
+		self.title = self.title.split('/')[-1]
 		X = sio.loadmat(matfilename)
 		self.Fs = float(X['Fs'].flatten()[0])
 		self.TimeLoopHists = X['TimeLoopHists'].flatten() #Cell Array
@@ -240,7 +241,11 @@ class CoverSongBeatPlots(wx.Panel):
 			idx = self.coverSong.BeatStartIdx[self.coverSong.currBeat]
 			N = len(self.coverSong.SampleDelays[self.coverSong.currBeat])
 			D = distance.squareform(distance.pdist(self.coverSong.Y[idx:idx+N, :]))
-			self.FigDMat.imshow(D)
+			diagVals = np.linspace(np.min(D), np.max(D), N)
+			D[np.diag_indices(N)] = diagVals
+			self.FigDMat.imshow(D, cmap=matplotlib.cm.jet)
+			self.FigDMat.hold(True)
+			
 			
 			#Bar plot distances
 			self.FigDists.cla()
@@ -274,6 +279,7 @@ class CoverSongBeatPlots(wx.Panel):
 class CoverSongWaveformPlots(wx.Panel):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
+		self.parent = parent
 		self.figure = Figure((10.0, 1.0), dpi=100)
 		self.axes = self.figure.add_subplot(111)
 		self.canvas = FigureCanvas(self, -1, self.figure)
@@ -283,6 +289,7 @@ class CoverSongWaveformPlots(wx.Panel):
 		self.Fit()
 		self.coverSong = None
 		self.currPos = 0 #Current position in seconds
+		self.cid = self.canvas.mpl_connect('button_press_event', self.onClick)
 		self.draw()
 
 	def updateCoverSong(self, newCoverSong):
@@ -308,7 +315,15 @@ class CoverSongWaveformPlots(wx.Panel):
 			self.axes.hold(True)
 			#Plot current marker in song
 			self.axes.plot(np.array([self.currPos, self.currPos]), np.array([self.y0, self.y1]), 'g')
-		self.canvas.draw()	
+			self.axes.set_title(self.coverSong.title)
+		self.canvas.draw()
+	
+	def onClick(self, evt):
+		if self.parent.glcanvas.selectedCover:
+			self.coverSong.currBeat = self.parent.glcanvas.selectedCover.currBeat
+		self.parent.glcanvas.selectedCover = self.coverSong
+		self.parent.updateCover()
+		#print "evt.xdata = %g"%evt.xdata
 
 if __name__ == '__main__':
-	c = CoverSong('CaliforniaLove_2.mat', 'CaliforniaLove.mp3')
+	c = CoverSong('CaliforniaLove_2.mat', 'CaliforniaLove.ogg')
