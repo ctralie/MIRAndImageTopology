@@ -1,7 +1,15 @@
 TYPE_TIMELOOPHISTSCORR = 1;
 TYPE_LANDSCAPEKMEANSEDIT = 2;
 TYPE_DGMDTW = 3;
-TYPE = TYPE_LANDSCAPEKMEANSEDIT;
+TYPE_LANDSCAPEKMEANS_SW = 4;
+TYPE = TYPE_LANDSCAPEKMEANS_SW;
+
+RECOMPUTE_STRINGS = 0;
+
+C = load('KMeans10.mat');
+C = C.C;
+xrangeLandscape = linspace(0, 2, 50);
+yrangeLandscape = linspace(0, 0.6, 50);
 
 list1 = 'covers32k/list1.list';
 list2 = 'covers32k/list2.list';
@@ -52,11 +60,6 @@ if TYPE == TYPE_TIMELOOPHISTSCORR
     [~, idx] = min(R, [], 2);
     sum(idx' == 1:80)
 elseif TYPE == TYPE_LANDSCAPEKMEANSEDIT
-    C = load('KMeans4.mat');
-    C = C.C;
-    xrangeLandscape = linspace(0, 2, 50);
-    yrangeLandscape = linspace(0, 0.6, 50);
-
     parfor ii = 1:length(features1)
         ii
         feats = load(sprintf('ftrsgeom/%s.mat', files1{ii}));
@@ -113,6 +116,56 @@ elseif TYPE == TYPE_DGMDTW
         end
     end
     [~, idx] = min(R, [], 2);
+    sum(idx' == 1:80)
+    scatter(idx(ii), ii, 30, 'g', 'fill');
+    save('R.mat', 'R');
+elseif TYPE == TYPE_LANDSCAPEKMEANS_SW
+    SMatch = 2;
+    SMismatch = -3;
+    SMatrix = SMatch*eye(size(C, 1)) - SMismatch;
+    SMatrix = SMatrix + SMismatch;
+    GapOpen = -2;
+    GapExtension = -2;
+    for ii = 1:length(features1)
+        ii
+        filename = sprintf('ftrsgeom/%s_2.mat', files1{ii});
+        vars = whos('-file', filename);
+        if ~ismember('beatString', {vars.name}) || RECOMPUTE_STRINGS
+            feats = load(filename, 'IsRips');
+            beatString = getBeatShapeString(feats.IsRips, C, xrangeLandscape, yrangeLandscape);
+            save(filename, 'beatString', '-append');
+            features1{ii} = beatString;
+        else
+            beatString = load(filename, 'beatString');
+            features1{ii} = beatString.beatString;
+        end
+    end
+
+    for ii = 1:length(features2)
+        ii
+        filename = sprintf('ftrsgeom/%s_2.mat', files2{ii});
+        vars = whos('-file', filename);
+        if ~ismember('beatString', {vars.name}) || RECOMPUTE_STRINGS
+            feats = load(filename, 'IsRips');
+            beatString = getBeatShapeString(feats.IsRips, C, xrangeLandscape, yrangeLandscape);
+            save(filename, 'beatString', '-append');
+            features2{ii} = beatString;
+        else
+            beatString = load(filename, 'beatString');
+            features2{ii} = beatString.beatString;
+        end
+    end
+    R = zeros(length(features1), length(features2));
+    for ii = 1:length(features1)
+        parfor jj = 1:length(features2)
+            N = length(features1{ii});
+            M = length(features2{ii});
+            R(ii, jj) = nwalign(features1{ii}, features2{jj})%, 'ScoringMatrix', SMatrix, ...
+            %    'GapOpen', GapOpen, 'ExtendGap', GapExtension);
+            fprintf(1, '(%i, %i): %g\n', ii, jj, R(ii, jj));
+        end
+    end
+    [~, idx] = max(R, [], 2);
     sum(idx' == 1:80)
     scatter(idx(ii), ii, 30, 'g', 'fill');
     save('R.mat', 'R');

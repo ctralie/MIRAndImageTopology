@@ -32,6 +32,7 @@ import subprocess
 #Constants
 DGM1EXTENT = 2.0
 MAXGEODESIC = 12
+SAMPLESKIP = 100
 
 def doCenteringAndPCA(X, ncomponents = 3):
 	#Subtract mean
@@ -53,9 +54,49 @@ def doCenteringAndPCA(X, ncomponents = 3):
 	Y = X.dot(eigvecs)
 	return (Y, varExplained)
 
+class CoverSongMatching(object):
+	def __init__(self, matfilename):
+		X = sio.loadmat(matfilename)
+		self.beatString1 = X['beatString1'].flatten()
+		self.beatString2 = X['beatString2'].flatten()
+		self.alignment = X['alignment']
+		a = X['alignment']
+		#NDNND-DNDD
+		#|:||| | ::
+		#NANNDAD-RR
+		self.match = np.zeros((2, len(a[0])), dtype='int32')
+		i1 = 0
+		i2 = 0
+		for i in range(len(a[0])):
+			if a[0][i] == '-':
+				self.match[0][i] = -1
+				self.match[1][i] = i2
+				i2 = i2 + 1
+			elif a[1][i] == '-':
+				self.match[0][i] = i1
+				self.match[1][i] = -1
+				i1 = i1 + 1
+			else:
+				self.match[0][i] = i1
+				self.match[1][i] = i2
+				i1 = i1 + 1
+				i2 = i2 + 1
+	
+	#Given a beat position in one of the cover songs, find
+	#the corresponding position in the other song under
+	#this alignment
+	def getOtherIdx(self, num, idx):
+		i = 0
+		for i in range(len(self.match[num])):
+			if self.match[num][i] == idx:
+				break
+		return self.match[1-num][i]
+	
+
 #Stores vertex buffers and other information for a cover song
 class CoverSong(object):
-	def __init__(self, matfilename, soundfilename):
+	def __init__(self, matfilename, soundfilename, num):
+		self.num = num #Whether it's the original (0) or the cover (1)
 		self.matfilename = matfilename
 		self.soundfilename = soundfilename
 		
@@ -288,7 +329,6 @@ class CoverSongWaveformPlots(wx.Panel):
 		self.SetSizer(self.sizer)
 		self.Fit()
 		self.coverSong = None
-		self.currPos = 0 #Current position in seconds
 		self.cid = self.canvas.mpl_connect('button_press_event', self.onClick)
 		self.draw()
 
@@ -297,33 +337,41 @@ class CoverSongWaveformPlots(wx.Panel):
 		if self.coverSong:
 			self.y0 = np.min(self.coverSong.waveform)
 			self.y1 = np.max(self.coverSong.waveform)
-			self.t = np.arange(0, self.coverSong.waveform.shape[0])
-			self.currPos = 0
+			self.t = np.arange(0, self.coverSong.waveform.shape[0])/self.coverSong.Fs
+			self.w = self.coverSong.waveform.flatten()
+			self.t = self.t.flatten()
+			self.w = self.w[0:-1:SAMPLESKIP]
+			self.t = self.t[0:-1:SAMPLESKIP]
 			self.draw()
-
-	def updatePos(self, newPos):
-		self.currPos = newPos
-		self.draw()
 
 	def draw(self):
 		if self.coverSong:
-			if self.currPos >= len(self.coverSong.waveform):
-				return
 			#Plot waveform
 			print "Drawing waveform..."
-			self.axes.plot(self.t, self.coverSong.waveform, 'b')
+			self.axes.plot(self.t, self.w, 'b')
 			self.axes.hold(True)
 			#Plot current marker in song
-			self.axes.plot(np.array([self.currPos, self.currPos]), np.array([self.y0, self.y1]), 'g')
+			time = self.coverSong.SampleStartTimes[self.coverSong.currBeat]
+			self.axes.plot(np.array([time, time]), np.array([self.y0, self.y1]), 'g')
 			self.axes.set_title(self.coverSong.title)
 		self.canvas.draw()
 	
 	def onClick(self, evt):
-		if self.parent.glcanvas.selectedCover:
+		if self.parent.matching:
+			#If there is a matching, jump to the matched beat in the other song
+			self.coverSong.currBeat = self.parent.matching.getOtherIdx(self.parent.glcanvas.selectedCover.num, self.parent.glcanvas.selectedCover.currBeat)
+		elif self.parent.glcanvas.selectedCover:
+			#If there is no matching, just go to the exact same position in
+			#the other song
 			self.coverSong.currBeat = self.parent.glcanvas.selectedCover.currBeat
 		self.parent.glcanvas.selectedCover = self.coverSong
 		self.parent.updateCover()
-		#print "evt.xdata = %g"%evt.xdata
 
 if __name__ == '__main__':
-	c = CoverSong('CaliforniaLove_2.mat', 'CaliforniaLove.ogg')
+	c = CoverSongMatching('CaliforniaLove_Orig_Cover3_NW.mat')
+	print c.alignment[0][0:10]
+	print c.alignment[1][0:10]
+	print c.alignment[2][0:10]
+	print c.getOtherIdx(0, 5)
+	print c.getOtherIdx(1, 5)
+	print c.getOtherIdx(1, 6)

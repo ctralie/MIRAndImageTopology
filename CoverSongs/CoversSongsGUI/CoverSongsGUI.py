@@ -180,13 +180,15 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 
 
 class CoverSongsFrame(wx.Frame):
-	(ID_LOADCOVERSONG1, ID_LOADCOVERSONG2, ID_SAVESCREENSHOT) = (1, 2, 3)
+	(ID_LOADCOVERSONG1, ID_LOADCOVERSONG2, ID_LOADMATCHING, ID_SAVESCREENSHOT) = (1, 2, 3, 4)
 
 	def __init__(self, parent, id, title, pos=DEFAULT_POS, size=DEFAULT_SIZE, style=wx.DEFAULT_FRAME_STYLE, name = 'GLWindow'):
 		style = style | wx.NO_FULL_REPAINT_ON_RESIZE
 		super(CoverSongsFrame, self).__init__(parent, id, title, pos, size, style, name)
 		#Initialize the menu
 		self.CreateStatusBar()
+		
+		self.matching = None
 		
 		#Sound variables
 		self.soundSamples = np.array([])
@@ -201,7 +203,9 @@ class CoverSongsFrame(wx.Frame):
 		self.Bind(wx.EVT_MENU, self.OnLoadCoverSong1, menuLoadCoverSong1)
 		menuLoadCoverSong2 = filemenu.Append(CoverSongsFrame.ID_LOADCOVERSONG2, "&Load Cover Song 2","Load Cover Song 2")
 		self.Bind(wx.EVT_MENU, self.OnLoadCoverSong2, menuLoadCoverSong2)
-		menuSaveScreenshot = filemenu.Append(CoverSongsFrame.ID_SAVESCREENSHOT, "&Save Screenshot", "Save a screenshot of the GL Canvas")		
+		menuLoadMatching = filemenu.Append(CoverSongsFrame.ID_LOADMATCHING, "&Load Matching", "Load Matching")
+		self.Bind(wx.EVT_MENU, self.OnLoadMatching, menuLoadMatching)
+		menuSaveScreenshot = filemenu.Append(CoverSongsFrame.ID_SAVESCREENSHOT, "&Save Screenshot", "Save a screenshot of the GL Canvas")
 		
 		# Creating the menubar.
 		menuBar = wx.MenuBar()
@@ -237,32 +241,49 @@ class CoverSongsFrame(wx.Frame):
 		BeatPlotsRow.Add(self.beatPlots, 0, wx.RIGHT)
 		
 		#Waveform Plots
+		bottomRow = wx.BoxSizer(wx.VERTICAL)
+		bottomRow1 = wx.BoxSizer(wx.HORIZONTAL)
 		self.waveform1 = CoverSongWaveformPlots(self)
+		bottomRow1.Add(self.waveform1, 0, wx.GROW)
+		bottomRow1.Add(wx.StaticText(self, label = "Beat1"))
+		self.song1CurrBeat = wx.TextCtrl(self)
+		bottomRow1.Add(self.song1CurrBeat)
+		self.beatTypeMatch = wx.TextCtrl(self)
+		bottomRow.Add(self.beatTypeMatch)
+		bottomRow.Add(bottomRow1, 0, wx.GROW)
+		
+		bottomRow2 = wx.BoxSizer(wx.HORIZONTAL)
 		self.waveform2 = CoverSongWaveformPlots(self)
+		bottomRow2.Add(self.waveform2, 0, wx.GROW)
+		bottomRow2.Add(wx.StaticText(self, label = "Beat2"))
+		self.song2CurrBeat = wx.TextCtrl(self)
+		bottomRow2.Add(self.song2CurrBeat)
+		bottomRow.Add(bottomRow2, 0, wx.GROW)
+		
 		
 		#Add everything to a vertical box sizer	
 		self.sizer = wx.BoxSizer(wx.VERTICAL)
 		self.sizer.Add(topRow, 0, wx.EXPAND)
 		self.sizer.Add(BeatPlotsRow, 0, wx.EXPAND)
-		self.sizer.Add(self.waveform1, 0, wx.GROW)
-		self.sizer.Add(self.waveform2, 0, wx.GROW)
+		self.sizer.Add(bottomRow, 0, wx.GROW)
 		
 		self.SetSizer(self.sizer)
 		self.Layout()
 		self.Show()
 
 	def updateCover(self):
-		self.beatPlots.updateCoverSong(self.glcanvas.selectedCover)
-		pygame.mixer.init(frequency=self.glcanvas.selectedCover.Fs)
-		pygame.mixer.music.load(self.glcanvas.selectedCover.soundfilename)
-		self.updatecurrSongString()
+		if self.glcanvas.selectedCover:
+			self.beatPlots.updateCoverSong(self.glcanvas.selectedCover)
+			pygame.mixer.init(frequency=self.glcanvas.selectedCover.Fs)
+			pygame.mixer.music.load(self.glcanvas.selectedCover.soundfilename)
+			self.updatecurrSongString()
 
 	def OnLoadCoverSong1(self, evt):
 		dlg = CoverSongFilesDialog(self)
 		dlg.ShowModal()
 		dlg.Destroy()
 		if dlg.matfilename and dlg.soundfilename:
-			self.glcanvas.coverSong1 = CoverSong(dlg.matfilename, dlg.soundfilename)
+			self.glcanvas.coverSong1 = CoverSong(dlg.matfilename, dlg.soundfilename, 0)
 			self.waveform1.updateCoverSong(self.glcanvas.coverSong1)
 			self.glcanvas.selectedCover = self.glcanvas.coverSong1
 			self.updateCover()
@@ -272,10 +293,21 @@ class CoverSongsFrame(wx.Frame):
 		dlg.ShowModal()
 		dlg.Destroy()
 		if dlg.matfilename and dlg.soundfilename:
-			self.glcanvas.coverSong2 = CoverSong(dlg.matfilename, dlg.soundfilename)
+			self.glcanvas.coverSong2 = CoverSong(dlg.matfilename, dlg.soundfilename, 1)
 			self.waveform2.updateCoverSong(self.glcanvas.coverSong2)
 			self.glcanvas.selectedCover = self.glcanvas.coverSong2
 			self.updateCover()
+	
+	def OnLoadMatching(self, evt):
+		dlg = wx.FileDialog(self, "Choose a file", ".", "", "*", wx.OPEN)
+		if dlg.ShowModal() == wx.ID_OK:
+			filename = dlg.GetFilename()
+			dirname = dlg.GetDirectory()
+			filepath = os.path.join(dirname, filename)
+			self.matching = CoverSongMatching(filepath)
+			self.updatecurrSongString()
+		dlg.Destroy()
+		return
 	
 	def OnBackButton(self, evt):
 		if self.glcanvas.selectedCover:
@@ -316,7 +348,27 @@ class CoverSongsFrame(wx.Frame):
 			c = self.glcanvas.selectedCover
 			self.currSongString.SetValue(c.title)
 			self.currBeatString.SetValue("%i"%c.currBeat)
-			
+			beats = [0, 0]
+			if self.matching:
+				#If a matching has been loaded, figure out which 
+				beats[c.num] = c.currBeat
+				beats[1-c.num] = self.matching.getOtherIdx(c.num, c.currBeat)
+				if beats[0] != -1:
+					self.song1CurrBeat.SetValue("%i (%i)"%(self.matching.beatString1[beats[0]], beats[0]))
+					self.glcanvas.coverSong1.currBeat = beats[0]
+				else:
+					self.song1CurrBeat.SetValue("GAP")
+				if beats[1] != -1:
+					self.song2CurrBeat.SetValue("%i (%i)"%(self.matching.beatString2[beats[1]], beats[1]))
+					self.glcanvas.coverSong2.currBeat = beats[1]
+				else:
+					self.song2CurrBeat.SetValue("GAP")
+				if beats[0] == -1 or beats[1] == -1:
+					self.beatTypeMatch.SetValue("GAP")
+				elif self.matching.beatString1[beats[0]] == self.matching.beatString2[beats[1]]:
+					self.beatTypeMatch.SetValue("MATCH")
+				else:
+					self.beatTypeMatch.SetValue("MISMATCH")
 
 if __name__ == "__main__":
 	pygame.init()
