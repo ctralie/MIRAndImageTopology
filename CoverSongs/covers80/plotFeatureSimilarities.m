@@ -77,19 +77,19 @@ function [DRips, DEucGeo, DGH, DL2Stress] = plotFeatureSimilarities( s1prefix, s
     figure;
     cutoff = 0.11;
     subplot(221);
-    imagesc(D11 < quantile(DEucGeo(:), cutoff));
+    imagesc(DEucGeo < quantile(DEucGeo(:), cutoff));
     title('Euclidean/Geodesic');
 
     subplot(222);
-    imagesc(D12 < quantile(DRips(:), cutoff));
+    imagesc(DRips < quantile(DRips(:), cutoff));
     title('Rips Landscapes');
 
     subplot(223);
-    imagesc(D21 < quantile(DGH(:), cutoff));
+    imagesc(DGH < quantile(DGH(:), cutoff));
     title('Gromov-Hausdorff');
 
     subplot(224);
-    imagesc(D22 < quantile(DL2Stress(:), cutoff));
+    imagesc(DL2Stress < quantile(DL2Stress(:), cutoff));
     title('L2 Metric Stress');    
     
     save(outname, 'DEucGeo', 'DRips', 'DGH', 'DL2Stress');
