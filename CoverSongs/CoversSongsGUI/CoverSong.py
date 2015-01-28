@@ -22,6 +22,7 @@ import wx
 import wx
 from wx import glcanvas
 import numpy as np
+import scipy
 import scipy.io as sio
 from scipy.io import wavfile
 import scipy.spatial.distance as distance
@@ -32,7 +33,7 @@ import subprocess
 #Constants
 DGM1EXTENT = 2.0
 MAXGEODESIC = 12
-SAMPLESKIP = 100
+DOWNSAMPLEFAC = 2000
 
 def doCenteringAndPCA(X, ncomponents = 3):
 	#Subtract mean
@@ -335,19 +336,24 @@ class CoverSongWaveformPlots(wx.Panel):
 	def updateCoverSong(self, newCoverSong):
 		self.coverSong = newCoverSong
 		if self.coverSong:
-			self.y0 = np.min(self.coverSong.waveform)
-			self.y1 = np.max(self.coverSong.waveform)
-			self.t = np.arange(0, self.coverSong.waveform.shape[0])/self.coverSong.Fs
 			self.w = self.coverSong.waveform.flatten()
-			self.t = self.t.flatten()
-			self.w = self.w[0:-1:SAMPLESKIP]
-			self.t = self.t[0:-1:SAMPLESKIP]
+			N = np.ceil( float(len(self.w)) / DOWNSAMPLEFAC) * DOWNSAMPLEFAC
+			w = np.zeros(N)
+			w[0:len(self.w)] = self.w
+			w = w.reshape((N/DOWNSAMPLEFAC, DOWNSAMPLEFAC))
+			w = np.mean(w, 1)
+			self.w = w
+			self.t = np.arange(0, N)/self.coverSong.Fs
+			self.t = self.t[0:-1:DOWNSAMPLEFAC]
+			self.y0 = np.min(self.w)
+			self.y1 = np.max(self.w)
+						
 			self.draw()
 
 	def draw(self):
 		if self.coverSong:
 			#Plot waveform
-			print "Drawing waveform..."
+			self.axes.clear()
 			self.axes.plot(self.t, self.w, 'b')
 			self.axes.hold(True)
 			#Plot current marker in song

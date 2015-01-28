@@ -118,6 +118,8 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 				if i >= len(self.selectedCover.SampleDelays[currBeat]) - 1:
 					pygame.mixer.music.stop()
 					break
+				else:
+					self.Refresh()
 			
 			#print "startTime = %g, EndTime = %g, StartPoint = %i, EndPoint = %i"%(startTime, EndTime, StartPoint, EndPoint)
 			
@@ -138,7 +140,6 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 			glDisableClientState(GL_VERTEX_ARRAY)
 			glDisableClientState(GL_COLOR_ARRAY)
 		self.SwapBuffers()
-		self.Refresh()
 	
 	def initGL(self):		
 		glutInit('')
@@ -369,6 +370,8 @@ class CoverSongsFrame(wx.Frame):
 					self.beatTypeMatch.SetValue("MATCH")
 				else:
 					self.beatTypeMatch.SetValue("MISMATCH")
+			self.waveform1.draw()
+			self.waveform2.draw()
 
 if __name__ == "__main__":
 	pygame.init()
