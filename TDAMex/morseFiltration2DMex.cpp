@@ -1,7 +1,7 @@
 //Programmer: Chris Tralie
 //Purpose: To implement the Morse Filtration on a 2D height function (image)
-//using the Union Find algorithm, and to return the 0D and 1D classes, with a 
-//representative loop for each class
+//using an efficient version of the Union Find algorithm with path compression
+//and to return the 0D and 1D classes, with a representative loop for each class
 #include <mex.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,6 +9,7 @@
 #include <iostream>
 #include <assert.h>
 #include <vector>
+#include <set>
 #include <algorithm>
 
 using namespace std;
@@ -84,14 +85,16 @@ void mexFunction(int nOutArray, mxArray *OutArray[], int nInArray, const mxArray
 	//***Step 1: Initialization
 	//Find the sorted order of the points
 	idxcmp cmp(D);
-	size_t* idx = new size_t[NM];
-	bool* dead = new bool[NM];
+	size_t* idxorder = new size_t[NM];
 	for (size_t i = 0; i < NM; i++) {
-		idx[i] = i;
-		dead[i] = false;
+		idxorder[i] = i;
 	}
-	vector<size_t> idxv(idx, idx+NM);
+	vector<size_t> idxv(idxorder, idxorder+NM);
 	sort(idxv.begin(), idxv.end(), cmp);
+	//The original index list points to the order in the sorted list
+	for (size_t i = 0; i < NM; i++) {
+		idxorder[idxv[i]] = i;
+	}
 	
 	//Setup the union find data structure
 	size_t* UFP = new size_t[NM];//Union find parent
@@ -106,7 +109,7 @@ void mexFunction(int nOutArray, mxArray *OutArray[], int nInArray, const mxArray
 		size_t vCurr = idxv[i];
 		int u = (int)(vCurr%N);
 		int v = (int)(vCurr/N);
-		vector<int> neighbs;
+		vector<size_t> neighbs;
 		//List of neighbors (including the point itself)
 		for (int du = -1; du <= 1; du++) {
 			for (int dv = -1; dv <= 1; dv++) {
@@ -116,42 +119,45 @@ void mexFunction(int nOutArray, mxArray *OutArray[], int nInArray, const mxArray
 					continue; //Bounds check
 				size_t idx = (size_t)(u+du) + N*((size_t)(v+dv));
 				size_t repIdx = UFFind(UFP, idx);
-				if (D[repIdx] <= D[vCurr]) {
+				if (idxorder[repIdx] < i) {
 					//Only consider neighbors that are already alive
-					neighbs.push_back(idx);
+					//Add the representative element
+					neighbs.push_back(repIdx);
 				}
 			}
 		}
-		//If none of this point's neighbors are alive yet, don't worry about
-		//merging anything
-		if (neighbs.size() == 1)
+		//If none of this point's neighbors are alive yet, this point will become
+		//alive with its own class
+		if (neighbs.size() == 0) {
 			continue;
+		}
 		
+		//Find the unique neighbors
 		//Otherwise, find the class that is the oldest
-		double earlyBirth = D[neighbs[0]];
-		double earlyIdx = neighbs[0];
-		for (size_t k = 1; k < neighbs.size(); k++) {
-			if (D[neighbs[k]] < earlyBirth) {
-				earlyBirth = D[neighbs[k]];
-				earlyIdx = neighbs[k];
-			}
-		}
-		//Merge the earlier classes with the oldest class and
-		//record them as a nontrivial class if their death time
-		//is greater than their birth time
+		set<size_t> neighbsUnique;
+		size_t oldestNeighb = neighbs[0];
 		for (size_t k = 0; k < neighbs.size(); k++) {
-			if (neighbs[k] != earlyIdx) {
-				size_t thisIdx = UFFind(UFP, neighbs[k]);
-				if (D[thisIdx] < D[idxv[i]] && !dead[thisIdx]) {
-					BirthDeath bd;
-					bd.birth = D[thisIdx];
-					bd.death = D[idxv[i]];
-					I.push_back(bd);
-					dead[thisIdx] = true;
-				}
-				UFUnion(UFP, D, earlyIdx, neighbs[k]);
+			if (idxorder[neighbs[k]] < idxorder[oldestNeighb]) {
+				oldestNeighb = neighbs[k];
 			}
+			neighbsUnique.insert(neighbs[k]);
 		}
+		
+		//Merge the earlier classes with the oldest class and
+		//record them as a nontrivial class
+		for (set<size_t>::iterator it = neighbsUnique.begin(); it != neighbsUnique.end(); it++) {
+			if (*it != oldestNeighb) {
+				BirthDeath bd;
+				bd.birth = D[*it];
+				bd.death = D[vCurr];
+				I.push_back(bd);
+			}
+			UFUnion(UFP, D, oldestNeighb, *it);
+		}
+		
+		//No matter what, the current pixel becomes part of the oldest
+		//class it's connected to
+		UFUnion(UFP, D, oldestNeighb, vCurr);
 	}
 	//TODO: Immortal class?
 	
@@ -168,6 +174,6 @@ void mexFunction(int nOutArray, mxArray *OutArray[], int nInArray, const mxArray
 	}
 	
 	delete[] UFP;
-	delete[] dead;
-	delete[] idx;
+	delete[] idxorder;
 }
+
