@@ -1,20 +1,24 @@
-function [AllSampleDelays, Ds, PointClouds, C, Chroma] = localChromaBeats( X, Fs, bts, BtsWin)
+function [AllSampleDelays, Ds, PointClouds, C, Chroma, SampleDelays] = localChromaBeats( X, Fs, bts, BtsWin, AvgFactor)
     if nargin < 4
     	BtsWin = 2;%Do sliding windows on 2 macrobeats by default
     end
-    AvgFactor = 10;
+    if nargin < 5
+        AvgFactor = 10;
+    end
     
     addpath('chroma-ansyn');
     N = length(bts) - BtsWin - 1;
     fprintf(1, 'Computing Chroma Delay Series on %i %i-macrobeat windows\n', N, BtsWin);
     
-    windowSize = round(Fs/(20*4))*4 %Make the window size about 50 milliseconds
-    macroHopSize = windowSize/4
+    %Make the window size about 50 milliseconds
+    macroHopSize = round(Fs/(20*4));
     
     %Get as close as possible to 200 samples per window
     windowSamples = Fs*mean(bts(2:end) - bts(1:end-1))*BtsWin; 
-    hopSize = macroHopSize/floor(macroHopSize/(windowSamples/200))
+    hopSize = round(windowSamples/200)
+    macroHopSize = round(macroHopSize/hopSize)*hopSize
     NHops = macroHopSize/hopSize;%Number of offsets at which to compute chroma
+    windowSize = macroHopSize*4
     
     %Calculate chroma at all of the offsets and interleave them all
     %together
@@ -47,12 +51,10 @@ function [AllSampleDelays, Ds, PointClouds, C, Chroma] = localChromaBeats( X, Fs
         i2 = find(SampleDelays > bts(ii+BtsWin), 1);
         PointClouds{ii} = Chroma(:, i1:i2)';
         AllSampleDelays{ii} = SampleDelays(i1:i2);
-%         PointClouds{ii} = Y;
-%         Y = bsxfun(@minus, mean(Y), Y);
-%         Norm = 1./(sqrt(sum(Y.*Y, 2)));
-%         Y = Y.*(repmat(Norm, [1 size(Y, 2)]));
-%         
-%         %AllSampleDelays{ii} = SampleDelays;
-%         Ds{ii} = pdist(Y);
+        Y = PointClouds{ii};
+        Y = bsxfun(@minus, mean(Y), Y);
+        Norm = 1./(sqrt(sum(Y.*Y, 2)));
+        Y = Y.*(repmat(Norm, [1 size(Y, 2)]));
+        Ds{ii} = pdist(Y);
     end
 end

@@ -34,11 +34,11 @@ function [AllSampleDelays, Ds, PointClouds] = localMFCCBeats( X, Fs, bts, NMFCCs
             SampleDelays(kk) = interval(1);
         end
         
+        PointClouds{ii} = Y;
         Y = bsxfun(@minus, mean(Y), Y);
         Norm = 1./(sqrt(sum(Y.*Y, 2)));
-        Y = Y.*(repmat(Norm, [1 size(Y, 2)]));        
+        Y = Y.*(repmat(Norm, [1 size(Y, 2)]));
         
-        PointClouds{ii} = Y;
         AllSampleDelays{ii} = SampleDelays;
         Ds{ii} = pdist(Y);
     end
