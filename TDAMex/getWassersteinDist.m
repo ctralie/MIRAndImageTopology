@@ -14,22 +14,17 @@ function [ matchidx, matchdist, D ] = getWassersteinDist( S, T, wassexp )
     X = repmat(X, [1, size(T, 1), 1]);
     Y = reshape(T, [1, size(T, 1), size(T, 2)]);
     Y = repmat(Y, [size(S, 1), 1, 1]);
-    size(X)
-    size(Y)
-    D = X - Y;
-    D = squeeze(sum(D.^wassexp, 3)).^(1.0/wassexp);
+    DUL = X - Y;
+    DUL = squeeze(sum(DUL.^wassexp, 3)).^(1.0/wassexp);
     
-    %If there are more points in one than the other, pad
-    %with vertical matchings to the diagonal in the persistence diagram
-    if N < M
-        bottom = T(:, 2) - T(:, 1);
-        bottom = repmat(bottom(:)', [M - N, 1]);
-        D = [D; bottom];
-    elseif M < N
-        right = S(:, 2) - S(:, 1);
-        right = repmat(right(:), [1, N - M]);
-        D = [D right];
-    end
+    %Put diagonal elements
+    D = zeros(N+M, N+M);
+    D(1:N, 1:M) = DUL;
+    D(N+1:end, 1:M) = repmat(T(:, 2)-T(:, 1), [1, M]);
+    D(1:N, M+1:end) = repmat((S(:, 2)-S(:, 1))', [N, 1]);
+    
+    
+    
     %Make use of an externally written Hungarian algorithm file
     [matchidx, matchdist] = Hungarian(D);
 end
