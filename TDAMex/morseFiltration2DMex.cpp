@@ -157,7 +157,7 @@ void getGenerator(vector<size_t>& generator, size_t* UFP, size_t* BoundaryTraces
 }
 
 //Arguments: D (distance matrix), eightNeighbors (1/0: optional)
-void mexFunction(int nOutArray, mxArray *OutArray[], int nInArray, const mxArray *InArray[]) {\
+void mexFunction(int nOutArray, mxArray *OutArray[], int nInArray, const mxArray *InArray[]) {
 	bool returnGenerators = true;
 	if (nOutArray > 1) {
 		returnGenerators = true;

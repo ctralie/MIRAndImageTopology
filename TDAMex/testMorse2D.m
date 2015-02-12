@@ -19,6 +19,8 @@ if 1
 init;
 load('TestDists.mat');
 D2 = fliplr(flipud(D2));
+D1 = imresize(imresize(D1, [20, 20]), size(D1));
+D2 = imresize(imresize(D2, [20, 20]), size(D2));
 
 tic
 [I11, Generators11] = morseFiltration2DMex(D1);
@@ -87,26 +89,7 @@ plotpersistencediagram(I22);
 title('1D Persistence Diagram');
 
 figure;
-I22 = I12+0.01*randn(size(I12));
-IMax = I12;
-IMin = I22;
-if (size(I22, 1) > size(I12, 1)) 
-    IMin = I12;
-    IMax = I22;
-end
-
-[matchidx, matchdist, D] = getWassersteinDist(IMax, IMin);
-
-plot(I12(:, 1), I12(:, 2), 'r.');
-hold on;
-plot(I22(:, 1), I22(:, 2), 'b.');
-plot([0 max(I22(:))], [0, max(I22(:))], 'r');
-for ii = 1:size(IMax, 1)
-    m = find(matchidx(ii, :), 1);
-    if (m <= size(IMin, 1))
-        m = [IMax(ii, :); IMin(m, :)];
-        plot(m(:, 1), m(:, 2), 'g');
-    end
-end
+[matchidx, matchdist, D] = getWassersteinDist(I11, I21);
+plotWassersteinMatching(I11, I21, matchidx);
 
 end
