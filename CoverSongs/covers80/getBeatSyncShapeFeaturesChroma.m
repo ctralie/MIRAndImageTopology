@@ -23,6 +23,7 @@ function [ MFCCs, Fs, SampleDelays, PointClouds, IsRips, IsMorse, Dists, LEigs, 
     LEigs = cell(1, length(Ds));
     TimeLoopHists = cell(1, length(Ds));
     Dists = zeros(length(Ds), 2);%Euclidean (column 1)/Geodesic (column 2) dists
+    MFCCs = 0;
     
     for dindex = 1:length(Ds)
         D = Ds{dindex};

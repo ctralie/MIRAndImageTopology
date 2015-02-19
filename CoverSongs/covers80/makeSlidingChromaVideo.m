@@ -1,6 +1,6 @@
 function [] = makeSlidingChromaVideo( X, Fs, NSeconds, outprefix )
     notes = {'A', 'A^#/B^b', 'B', 'C', 'C^#/D^b', 'D', 'D^#/E^b', 'E', 'F', 'F^#/G^b', 'G', 'G^#/A^b'};
-    notes2 = cell(1, length(notes)*NSeconds);
+    notes2 = cell(1, length(notes)*3);
     for ii = 1:length(notes2)
         notes2{ii} = '';
     end
@@ -11,6 +11,8 @@ function [] = makeSlidingChromaVideo( X, Fs, NSeconds, outprefix )
     for ii = 1:length(notes2)
         notes{ii} = notes2{end-ii+1};
     end
+    
+    notes
     
     %Make movie
     X = X(1:Fs*NSeconds);
@@ -26,11 +28,11 @@ function [] = makeSlidingChromaVideo( X, Fs, NSeconds, outprefix )
         Y = Chroma(:, ii:ii+windowSize-1)';
         C = Y';
         imagesc(SampleDelays(ii:ii+windowSize-1), 1:size(C, 1), flipud(C));
+        xlabel('Time');
+        ylabel('Chroma Bin');
         set(gca, 'YTick', 1:36);
         set(gca, 'YTickLabel', notes);
         title(sprintf('"%s" Chroma', outprefix));
-        xlabel('Time');
-        ylabel('Chroma Bin');
         print('-dpng', '-r100', sprintf('syncmovie%i.png', index));
         index = index + 1;
     end

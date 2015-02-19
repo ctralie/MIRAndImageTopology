@@ -1,4 +1,5 @@
 function varargout = ShuffleTest(varargin)
+addpath('../../TDAMex');
 % SHUFFLETEST MATLAB code for ShuffleTest.fig
 %      SHUFFLETEST, by itself, creates a new SHUFFLETEST or raises the existing
 %      singleton*.
@@ -22,7 +23,7 @@ function varargout = ShuffleTest(varargin)
 
 % Edit the above text to modify the response to help ShuffleTest
 
-% Last Modified by GUIDE v2.5 07-Feb-2015 18:36:22
+% Last Modified by GUIDE v2.5 19-Feb-2015 11:32:18
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -62,35 +63,62 @@ handles.confusorshuffle = 1;
 handles.correct = -1;
 handles.currBeat = 1;
 handles.order = randperm(3);
+handles.UseMorseCriticalPoints = 0;
 
 % Update handles structure
 guidata(hObject, handles);
 
 disp('Finished initializing');
 
-function [Y] = getImage(X)
-Y = bsxfun(@minus, mean(X), X);
-Norm = 1./(sqrt(sum(Y.*Y, 2)));
-Y = Y.*(repmat(Norm, [1 size(Y, 2)]));
-Y = squareform(pdist(Y));
+function [Y, I, locs] = getImage(X)
+    Y = bsxfun(@minus, mean(X), X);
+    Norm = 1./(sqrt(sum(Y.*Y, 2)));
+    Y = Y.*(repmat(Norm, [1 size(Y, 2)]));
+    Y = squareform(pdist(Y));
+    %Now get persistence diagram for Y
+    [I, Gens] = morseFiltration2DMex(Y);
+    locs = zeros(size(I, 1), 2);
+    %Y = 0*Y;
+    for ii = 1:size(I, 1)
+        Gens{ii} = Gens{ii}(end) + 1;
+        [locs(ii, 1), locs(ii, 2)] = ind2sub(size(Y), Gens{ii});
+    end
 
 function plotImages(handles)
 if (~isempty(handles.song) && ~isempty(handles.cover) && ~isempty(handles.confusor))
     PCs = {handles.song{handles.songshuffle(handles.currBeat)}, ...
             handles.cover{handles.songshuffle(handles.currBeat)}, ...
             handles.confusor{handles.confusorshuffle(handles.currBeat)} };
+
     axes(handles.axes1);
-    imagesc(getImage(PCs{handles.order(1)}));
-    colormap('jet');
-    axis off;
+    [Y, I, locs] = getImage(PCs{handles.order(1)});
+    if handles.UseMorseCriticalPoints
+        scatter(locs(:, 2), size(Y, 1)-locs(:, 1), 1000*(I(:, 2)-I(:, 1)), 'b', 'fill');
+    else
+        imagesc(Y);
+        colormap('jet');
+        axis off;
+    end
+    
     axes(handles.axes2);
-    imagesc(getImage(PCs{handles.order(2)}));
-    colormap('jet');
-    axis off;
+    [Y, I, locs] = getImage(PCs{handles.order(2)});
+    if handles.UseMorseCriticalPoints
+        scatter(locs(:, 2), size(Y, 1)-locs(:, 1), 1000*(I(:, 2)-I(:, 1)), 'b', 'fill');
+    else
+        imagesc(Y);
+        colormap('jet');
+        axis off;
+    end
+    
     axes(handles.axes3);
-    imagesc(getImage(PCs{handles.order(3)}));
-    colormap('jet');
-    axis off;
+    [Y, I, locs] = getImage(PCs{handles.order(3)});
+    if handles.UseMorseCriticalPoints
+        scatter(locs(:, 2), size(Y, 1)-locs(:, 1), 1000*(I(:, 2)-I(:, 1)), 'b', 'fill');
+    else
+        imagesc(Y);
+        colormap('jet');
+        axis off;
+    end
 end
 
 %Function that checks if all 3 songs have been loaded
@@ -245,3 +273,16 @@ handles = guidata(hObject);
 handles.confusor = s.PointClouds;
 guidata(hObject, handles);
 checkLoaded(handles, hObject);
+
+
+% --- Executes on button press in checkbox1.
+function checkbox1_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox1
+handles = guidata(hObject);
+handles.UseMorseCriticalPoints = get(hObject,'Value');
+guidata(hObject, handles);
+plotImages(handles);

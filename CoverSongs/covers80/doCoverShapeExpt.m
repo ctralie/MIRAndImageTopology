@@ -160,7 +160,7 @@ elseif TYPE == TYPE_LANDSCAPEKMEANS_SW
         parfor jj = 1:length(features2)
             N = length(features1{ii});
             M = length(features2{ii});
-            R(ii, jj) = nwalign(features1{ii}, features2{jj})%, 'ScoringMatrix', SMatrix, ...
+            R(ii, jj) = nwalign(features1{ii}, features2{jj}, 'ScoringMatrix', SMatrix);%, ...
             %    'GapOpen', GapOpen, 'ExtendGap', GapExtension);
             fprintf(1, '(%i, %i): %g\n', ii, jj, R(ii, jj));
         end

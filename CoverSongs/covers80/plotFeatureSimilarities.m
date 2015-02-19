@@ -1,8 +1,26 @@
 function [DRips, DEucGeo, DGH, DL2Stress] = plotFeatureSimilarities( s1prefix, s2prefix, outname )
+    addpath('../../');
+    feats1 = load(sprintf('ftrsgeomchroma/%s.mat', s1prefix));
+    feats2 = load(sprintf('ftrsgeomchroma/%s.mat', s2prefix));
 
-    feats1 = load(sprintf('ftrsgeom/%s.mat', s1prefix));
-    feats2 = load(sprintf('ftrsgeom/%s.mat', s2prefix));
-
+    %Point center and sphere-normalize point clouds
+    for ii = 1:length(feats1.PointClouds)
+        Y = feats1.PointClouds{ii};
+        Y = bsxfun(@minus, mean(Y), Y);
+        Y = bsxfun(@times, std(Y), Y);
+        %Norm = 1./(sqrt(sum(Y.*Y, 2)));
+        %Y = Y.*(repmat(Norm, [1 size(Y, 2)]));
+        feats1.PointClouds{ii} = Y;
+    end
+    for ii = 1:length(feats2.PointClouds)
+        Y = feats2.PointClouds{ii};
+        Y = bsxfun(@minus, mean(Y), Y);
+        Y = bsxfun(@times, std(Y), Y);
+        %Norm = 1./(sqrt(sum(Y.*Y, 2)));
+        %Y = Y.*(repmat(Norm, [1 size(Y, 2)]));
+        feats2.PointClouds{ii} = Y;
+    end
+    
     %DGM1 landscapes
     xrangeLandscape = linspace(0, 2, 50);
     yrangeLandscape = linspace(0, 0.6, 50);    
@@ -35,6 +53,7 @@ function [DRips, DEucGeo, DGH, DL2Stress] = plotFeatureSimilarities( s1prefix, s
         D1 = squareform(pdist(feats1.PointClouds{ii}));
         for jj = 1:m
             D2 = squareform(pdist(feats2.PointClouds{jj}));
+            D2 = imresize(D2, size(D1));
             diff = D1(:) - D2(:);
             row(1, jj) = sqrt(sum(diff.*diff));%L2 Stress
             row(2, jj) = max(abs(diff));%Gromov-Hausdorff

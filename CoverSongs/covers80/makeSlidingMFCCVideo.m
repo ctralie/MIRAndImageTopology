@@ -4,6 +4,8 @@ function [] = makeSlidingMFCCVideo( X, Fs, NSeconds, outprefix )
     [AllSampleDelays, ~, PointClouds] = localMFCCBeats(X, Fs, 0:0.5:NSeconds, 20, 1);
     SampleDelays = cell2mat(AllSampleDelays)/Fs;
     MFCCs = cell2mat(PointClouds');
+    [~, ~, invMFCCs] = invmelfcc(MFCCs', Fs);
+    invMFCCs = invMFCCs(1:round(size(invMFCCs, 1)/2), :);
     
     hopSize = SampleDelays(2) - SampleDelays(1);
     windowSize = int32(round(2/hopSize));%2 seconds are in view at all times
@@ -14,10 +16,19 @@ function [] = makeSlidingMFCCVideo( X, Fs, NSeconds, outprefix )
         clf;
         fprintf(1, '%i of %i\n', ii, size(MFCCs, 1)-windowSize+1);
         Y = MFCCs(ii:ii+windowSize-1, :)';
-        imagesc(SampleDelays(ii:ii+windowSize-1), 1:size(Y, 2), Y);
+        subplot(1, 2, 1);
+        imagesc(SampleDelays(ii:ii+windowSize-1), 1:size(Y, 1), Y);
+        caxis([min(MFCCs(:)), max(MFCCs(:))]);
         title(sprintf('"%s" MFCC', outprefix));
-        xlabel('Time');
+        xlabel('Time (sec)');
         ylabel('MFCC Bin');
+        subplot(1, 2, 2);
+        Y = invMFCCs(:, ii:ii+windowSize-1);
+        imagesc(SampleDelays(ii:ii+windowSize-1), (1:size(Y, 1))*Fs/(2*size(Y, 1)), Y);
+        caxis([min(invMFCCs(:)), max(invMFCCs(:))]);
+        title(sprintf('"%s" MFCC Inverted', outprefix));
+        xlabel('Time (sec)');
+        ylabel('Frequency (hz)');
         print('-dpng', '-r100', sprintf('syncmovie%i.png', index));
         index = index + 1;
     end

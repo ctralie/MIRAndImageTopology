@@ -1,10 +1,5 @@
-function [ I ] = getMorseFiltered0DDiagrams( X, tda )
-    if nargin < 2
-        javaclasspath('jars/tda.jar');
-        import api.*;
-        tda = Tda();
-    end
-    
+function [ I ] = getMorseFiltered0DDiagrams( X )
+    init;
     %Perform mean/stdev scaling
     X = bsxfun(@minus, mean(X, 1), X);
     X = bsxfun(@times, 1./std(X), X);
@@ -26,8 +21,9 @@ function [ I ] = getMorseFiltered0DDiagrams( X, tda )
         V2 = [(1:N)'; (2:N)'];
         D = max(filtDist(V1), filtDist(V2));
         S = [V1 V2 D];
-        tda.RCA1({'settingsFile=data/cts.txt', 'supplyDataAs=sparseMatrix', sprintf('distanceBoundOnEdges=%g', max(D(:)) + 10), 'verbose=False'}, S);
-        INew = tda.getResultsRCA1(0).getIntervals();
+%         tda.RCA1({'settingsFile=data/cts.txt', 'supplyDataAs=sparseMatrix', sprintf('distanceBoundOnEdges=%g', max(D(:)) + 10), 'verbose=False'}, S);
+%         INew = tda.getResultsRCA1(0).getIntervals();
+        [~, INew] = rca1mfscm(S, max(D(:)) + 10);
         %Exclude the last point because it's [0, -1] due to the fact
         %that there's one connected component
         I = [I; INew(1:end-1, :)];

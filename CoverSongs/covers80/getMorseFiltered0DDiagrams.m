@@ -1,10 +1,8 @@
 function [ I ] = getMorseFiltered0DDiagrams( X, tda )
     if nargin < 2
-        javaclasspath('jars/tda.jar');
-        import api.*;
-        tda = Tda();
+        init;
     end
-
+    
     %Appproximately sample k uniformly spaced vectors on the
     %unit k-sphere
     %http://mathoverflow.net/questions/24688/efficiently-sampling-points-uniformly-from-the-surface-of-an-n-sphere
@@ -22,8 +20,13 @@ function [ I ] = getMorseFiltered0DDiagrams( X, tda )
         V2 = [(1:N)'; (2:N)'];
         D = max(filtDist(V1), filtDist(V2));
         S = [V1 V2 D];
-        tda.RCA1({'settingsFile=data/cts.txt', 'supplyDataAs=sparseMatrix', sprintf('distanceBoundOnEdges=%g', max(D(:)) + 10), 'verbose=False'}, S);
-        INew = tda.getResultsRCA1(0).getIntervals();
+        if nargin < 2
+            [~, INew] = rca1mfscm(S, max(D(:)) + 10);
+        else
+            tda.RCA1({'settingsFile=data/cts.txt', 'supplyDataAs=sparseMatrix', sprintf('distanceBoundOnEdges=%g', max(D(:)) + 10), 'verbose=False'}, S);
+            INew = tda.getResultsRCA1(0).getIntervals();
+        end
+        
         %Exclude the last point because it's [0, -1] due to the fact
         %that there's one connected component
         I = [I; INew(1:end-1, :)];

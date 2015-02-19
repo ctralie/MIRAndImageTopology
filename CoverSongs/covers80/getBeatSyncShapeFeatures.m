@@ -1,6 +1,9 @@
 function [ MFCCs, Fs, SampleDelays, PointClouds, IsRips, IsMorse, Dists, LEigs, TimeLoopHists, bts ] = ...
     getBeatSyncShapeFeatures( tda, filename, bts, DOPLOT, BtsWin )
 
+    if tda == 0
+        init;
+    end
     addpath('rastamat');    
     
     if nargin < 4
@@ -77,10 +80,16 @@ function [ MFCCs, Fs, SampleDelays, PointClouds, IsRips, IsMorse, Dists, LEigs, 
         LEigs{dindex} = eig(L);
         
         %Save DGM1
-        tda.RCA1( { 'settingsFile=data/cts.txt', 'supplyDataAs=distanceMatrix', ...
-            sprintf('distanceBoundOnEdges=%g', max(D(:)) + 10)}, D );
-        IsRips{dindex} = tda.getResultsRCA1(1).getIntervals();
-        IsMorse{dindex} = getMorseFiltered0DDiagrams(PointClouds{dindex}, tda);
+        if tda == 0
+            IsRips{dindex} = rca1dm(D, max(D(:)) + 10);
+            IsMorse{dindex} = getMorseFiltered0DDiagrams(PointClouds{dindex});
+        else
+            tda.RCA1( { 'settingsFile=data/cts.txt', 'supplyDataAs=distanceMatrix', ...
+               sprintf('distanceBoundOnEdges=%g', max(D(:)) + 10)}, D );
+            IsRips{dindex} = tda.getResultsRCA1(1).getIntervals();
+            IsMorse{dindex} = getMorseFiltered0DDiagrams(PointClouds{dindex}, tda);
+        end
+            
         
         %Save time loop histogram
         TimeLoopHists{dindex} = hist(LoopTimes, linspace(0, N, N/5+1));

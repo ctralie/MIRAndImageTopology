@@ -128,10 +128,13 @@ class CoverSong(object):
 		#really matter
 		IsMorse = []
 		for i in range(self.IsMorse.shape[0]):
-			P = self.IsMorse[i][:, 1] - self.IsMorse[i][:, 0]
-			P = np.sort(P)
-			P = P[::-1]
-			IsMorse.append(P)
+			if self.IsMorse[i].shape[0] > 0 and self.IsMorse[i].shape[1] > 0:
+				P = self.IsMorse[i][:, 1] - self.IsMorse[i][:, 0]
+				P = np.sort(P)
+				P = P[::-1]
+				IsMorse.append(P)
+			else:
+				IsMorse.append(np.array([0]))
 		self.IsMorse = IsMorse
 		
 		#Step 2: Setup a vertex buffer for this song
@@ -287,20 +290,20 @@ class CoverSongBeatPlots(wx.Panel):
 			D[np.diag_indices(N)] = diagVals
 			self.FigDMat.imshow(D, cmap=matplotlib.cm.jet)
 			self.FigDMat.hold(True)
-			
+			self.FigDMat.set_title('Euclidean Distance Matrix')
 			
 			#Bar plot distances
 			self.FigDists.cla()
 			self.FigDists.bar([0, 1], EucGeo, color='r')
 			self.FigDists.set_xticks([0.5, 1.5])
-			self.FigDists.set_xticklabels(('Euc', 'Geo'))
+			self.FigDists.set_xticklabels(('Euclid', 'Geodesic'))
 			self.FigDists.set_ylim([0, MAXGEODESIC])
 			#TODO: Also plot letter here
 			self.FigDists.set_title('Distances')
 			
 			#Plot DGM1
 			self.DGM1.cla()
-			if I1.shape[0] > 0:
+			if I1.shape[0] > 0 and I1.shape[1] > 0:
 				self.DGM1.plot(I1[:, 0], I1[:, 1], 'b.')
 				self.DGM1.hold(True)
 				maxVal = max(np.max(I1) + 0.2, DGM1EXTENT)
