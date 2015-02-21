@@ -170,7 +170,7 @@ class CoverSong(object):
 			self.Fs, self.waveform = wavfile.read("temp.wav")
 		else:
 			self.Fs, self.waveform = wavfile.read(soundfilename)
-		if self.waveform.shape[1] > 1:
+		if len(self.waveform.shape) > 1 and self.waveform.shape[1] > 1:
 			self.waveform = self.waveform[:, 0]
 		self.currBeat = 0
 		

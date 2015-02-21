@@ -23,8 +23,7 @@ import subprocess
 import math
 import time
 from DelaySeries import *
-import pygame.mixer
-import time
+import pygame
 import matplotlib.pyplot as plt
 
 DEFAULT_SIZE = wx.Size(1200, 800)
@@ -71,6 +70,7 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 		self.size = self.GetClientSize()
 		self.camera = MousePolarCamera(self.size.width, self.size.height)
 		self.Fs = 22050
+		self.timeOffset = 0
 		
 		#Main state variables
 		self.MousePos = [0, 0]
@@ -133,10 +133,17 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 			pygame.mixer.quit()
 			print "Starting mixer at %i"%self.Fs
 			pygame.mixer.init(frequency = self.Fs)
-			s = pygame.mixer.Sound(self.filename)
-			s.play()
-			self.startTime = time.time()
+			pygame.mixer.music.load(self.filename)
+			pygame.mixer.music.play(0, 0)
 			self.Refresh()
+	
+	#The user can change the position in the song
+	def SliderMove(self, evt):
+		pos = evt.GetPosition()
+		time = np.max(self.SampleDelays)*float(pos)/1000.0
+		pygame.mixer.music.play(0, time)
+		self.timeOffset = time
+		self.PlayIDX = 0
 
 	def repaint(self):
 		#Set up projection matrix
@@ -159,8 +166,9 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 			StartPoint = 0
 			EndPoint = self.X.shape[0]-1
 			if self.Playing:
-				self.endTime = time.time()
-				dT = self.endTime - self.startTime
+				dT = self.timeOffset + float(pygame.mixer.music.get_pos()) / 1000.0
+				sliderPos = int(np.round(1000*dT/np.max(self.SampleDelays)))
+				self.timeSlider.SetValue(sliderPos)
 				self.TimeTxt.SetValue("%g"%dT)
 				while dT > self.SampleDelays[self.PlayIDX]:
 					self.PlayIDX = self.PlayIDX + 1
@@ -490,9 +498,16 @@ class LoopDittyFrame(wx.Frame):
 		hbox7.Add(self.glcanvas.TimeTxt, flag=wx.LEFT, border=5)
 		animatePanel.Add(hbox7)				
 		
-		#Finally add the two main panels to the sizer		
+		#Add the scroll bar to choose the time of the song
+		glCanvasSizer = wx.BoxSizer(wx.VERTICAL)
+		glCanvasSizer.Add(self.glcanvas, 2, wx.EXPAND)
+		self.glcanvas.timeSlider = wx.Slider(self, -1, 0, 0, 1000)
+		glCanvasSizer.Add(self.glcanvas.timeSlider, 0, wx.EXPAND)
+		self.glcanvas.timeSlider.Bind(wx.EVT_COMMAND_SCROLL, self.glcanvas.SliderMove)		
+		
+		#Finally add the two main panels to the sizer
 		self.sizer = wx.BoxSizer(wx.HORIZONTAL)
-		self.sizer.Add(self.glcanvas, 2, wx.EXPAND)
+		self.sizer.Add(glCanvasSizer, 2, wx.EXPAND)
 		self.sizer.Add(self.rightPanel, 0, wx.EXPAND)
 		
 		self.SetSizer(self.sizer)
@@ -559,12 +574,11 @@ class LoopDittyFrame(wx.Frame):
 			print "Loading %s...."%filename
 			filepath = os.path.join(dirname, filename)
 			data = sio.loadmat(filepath)
-			self.Fs = data['Fs'];
+			self.Fs = data['Fs']
 			self.glcanvas.Fs = self.Fs
 			self.filename = filename
 			#Keep track of the original delay series and sample delays to allow
 			#for arbitrary resampling later
-			self.soundSamples = data['soundSamples'].flatten()
 			self.OrigDelaySeries = data['DelaySeries']
 			self.OrigSampleDelays = data['SampleDelays'].flatten()
 			self.DelaySeries = self.OrigDelaySeries.copy()
@@ -573,14 +587,9 @@ class LoopDittyFrame(wx.Frame):
 			self.setupPosVBO()
 			self.setupColorVBO()
 			self.glcanvas.camera.centerOnPoints(self.glcanvas.X)
-			print "Loaded %s"%filename
-			
-			#Write sound samples to a file (convert to 16-bit first)
-			soundSamples16 = (2.0**15)*self.soundSamples
-			soundSamples16 = np.array(soundSamples16, dtype='int16')
-			wavfile.write("tempExternal.wav", self.Fs, soundSamples16)
-			self.filename = "tempExternal.wav"
-			self.glcanvas.filename = "tempExternal.wav"
+			#The sound file needs to be in the same directory
+			self.filename = str(data['soundfilename'][0])
+			self.glcanvas.filename = self.filename
 			
 			#Update GUI Elements
 			self.songNameTxt.SetValue(filename)
