@@ -1,4 +1,4 @@
-function [] = makeSlidingChromaVideo( X, Fs, NSeconds, outprefix )
+function [Chroma, SampleDelays] = makeSlidingChromaVideo( filename, NSeconds, outprefix )
     notes = {'A', 'A^#/B^b', 'B', 'C', 'C^#/D^b', 'D', 'D^#/E^b', 'E', 'F', 'F^#/G^b', 'G', 'G^#/A^b'};
     notes2 = cell(1, length(notes)*3);
     for ii = 1:length(notes2)
@@ -12,11 +12,14 @@ function [] = makeSlidingChromaVideo( X, Fs, NSeconds, outprefix )
         notes{ii} = notes2{end-ii+1};
     end
     
-    notes
+    [X, Fs] = audioread(filename);
+    if size(X, 2) > 1
+        X = mean(X, 2);
+    end
     
     %Make movie
     X = X(1:Fs*NSeconds);
-    [~, ~, ~, ~, Chroma, SampleDelays] = localChromaBeats(X, Fs, [0.5, 1], 2, 10);
+    [Chroma, SampleDelays] = getChromaTempoWindow({X, Fs}, 0.5);
     hopSize = SampleDelays(2) - SampleDelays(1);
     windowSize = int32(round(2/hopSize));
     SkipNum = 10;
