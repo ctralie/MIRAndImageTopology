@@ -74,18 +74,23 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 	
 	def processEraseBackgroundEvent(self, event): pass #avoid flashing on MSW.
 
-	def processSizeEvent(self, event):
-		self.size = self.GetClientSize()
-		self.SetCurrent(self.context)
-		glViewport(0, 0, self.size.width, self.size.height)
+	def setup2DProjectionMatrix(self, xmin, xmax):
 		#Set up projection matrix
 		glMatrixMode(GL_PROJECTION)
 		glLoadIdentity()
 		aspect = float(self.size.width)/float(self.size.height)
 		if self.size.width >= self.size.height:
-			gluOrtho2D(-1.0*aspect, 1.0*aspect, -1, 1)
+			#gluOrtho2D(-1.0*aspect, 1.0*aspect, -1, 1)
+			gluOrtho2D(xmin*aspect, xmax*aspect, -1, 1)
 		else:
-			gluOrtho2D(-1, 1, -1.0/aspect, 1.0/aspect)		
+			gluOrtho2D(xmin, xmax, -1.0/aspect, 1.0/aspect)
+
+	def processSizeEvent(self, event):
+		self.size = self.GetClientSize()
+		self.SetCurrent(self.context)
+		glViewport(0, 0, self.size.width, self.size.height)
+		self.setup2DProjectionMatrix(-1, 1)
+
 
 	def processPaintEvent(self, event):
 		dc = wx.PaintDC(self)
@@ -114,16 +119,18 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 		pygame.mixer.music.play(0, time)
 		self.timeOffset = time
 		self.PlayIDX = 0
+		self.Playing = True
 
 	def repaint(self):
 		#Set up modelview matrix
 		glClearColor(1.0, 1.0, 1.0, 0.0)
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-		
+
 		if len(self.X) > 0:
 			glDisable(GL_LIGHTING)
 			glColor3f(0, 0, 0)
 			glPointSize(3)
+			glLineWidth(1)
 			NPoints = self.X.shape[0]
 			StartPoint = 0
 			EndPoint = self.X.shape[0]-1
@@ -140,18 +147,27 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 				if MAXPOINTS != -1:
 					StartPoint = max(EndPoint - MAXPOINTS, 0)
 				self.Refresh()
-
+			if self.PlayIDX >= len(self.X):
+				self.PlayIDX = len(self.X) - 1
+			
+			self.setup2DProjectionMatrix(-0.1, 0.1)
+			
 			self.vbo.bind()
 			glEnableClientState(GL_VERTEX_ARRAY)
 			glVertexPointerf( self.vbo )
 			
+			glMatrixMode(GL_MODELVIEW)
+			glLoadIdentity()
+			glTranslatef(-self.X[self.PlayIDX, 0], 0, 0)
+			EndPoint = self.X.shape[0] - 1
 			if self.DrawEdges:
 				glDrawArrays(GL_LINES, 0, EndPoint+1)
 				glDrawArrays(GL_LINES, 1, EndPoint)
 			glDrawArrays(GL_POINTS, 0, EndPoint + 1)
 			
 			#Now draw the current point in time
-			glPointSize(5)
+			glPointSize(10)
+			glLineWidth(6)
 			glColor3f(1, 0, 0)
 			glBegin(GL_POINTS)
 			glVertex2f(self.X[self.PlayIDX, 0], self.X[self.PlayIDX, 1])

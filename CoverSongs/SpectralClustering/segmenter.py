@@ -21,6 +21,7 @@ import scipy.spatial
 import scipy.signal
 import scipy.linalg
 import scipy.io as sio
+import scipy.io.wavfile as wavfile
 
 import sklearn.cluster
 
@@ -131,8 +132,11 @@ def features(filename):
     y, sr = librosa.load(filename, sr=SR)
 
     print '\t[2/5] Separating harmonic and percussive signals'
-    y_perc, y_harm = librosa.effects.hpss(y)
-
+    #Changed this
+    y_harm, y_perc = librosa.effects.hpss(y)
+    wavfile.write('harm.wav', sr, y_harm)
+    wavfile.write('perc.wav', sr, y_perc)
+	
     print '\t[3/5] detecting beats'
     bpm, beats = get_beats(y=y_perc, sr=sr, hop_length=HOP_LENGTH)
 

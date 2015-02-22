@@ -1,6 +1,11 @@
 addpath('../../DelaySeries');
 files = textread('allfiles.list', '%s\n');
-for songIdx = 2:length(files)
+for songIdx = 1:length(files)
+    outname = sprintf('TempoEmbeddings/%s.mat', files{songIdx});
+    if exist(outname)
+        fprintf(1, 'Skipping %s\n', outname);
+        continue;
+    end
     fprintf(1, 'Doing %s...', files{songIdx});
     filename = sprintf('BeatsAndOggs/%s.ogg', files{songIdx});
     [X, Fs] = audioread(filename);
@@ -10,5 +15,5 @@ for songIdx = 2:length(files)
     tempoPeriod = mean(bts(2:end) - bts(1:end-1));
     [Chroma, SampleDelaysChroma] = getChromaTempoWindow(filename, tempoPeriod);
     [MFCC, SampleDelaysMFCC] = getMFCCTempoWindow(filename, tempoPeriod);
-    save(sprintf('TempoEmbeddings/%s.mat', files{songIdx}), 'Chroma', 'SampleDelaysChroma', 'MFCC', 'SampleDelaysMFCC', 'bts');
+    save(outname, 'Chroma', 'SampleDelaysChroma', 'MFCC', 'SampleDelaysMFCC', 'bts');
 end
