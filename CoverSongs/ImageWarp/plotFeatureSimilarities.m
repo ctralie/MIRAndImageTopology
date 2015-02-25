@@ -9,9 +9,9 @@ function [DGH, DL2Stress] = plotFeatureSimilarities( s1prefix, s2prefix, outname
         i2 = find(song1.SampleDelaysMFCC >= song1.bts(ii+1));
         Y = song1.MFCC(i1:i2, :);
         Y = bsxfun(@minus, mean(Y), Y);
-        Y = bsxfun(@times, std(Y), Y);
-        %Norm = 1./(sqrt(sum(Y.*Y, 2)));
-        %Y = Y.*(repmat(Norm, [1 size(Y, 2)]));
+%         Y = bsxfun(@times, std(Y), Y);
+        Norm = 1./(sqrt(sum(Y.*Y, 2)));
+        Y = Y.*(repmat(Norm, [1 size(Y, 2)]));
         song1.PointClouds{ii} = Y;
     end
     for ii = 1:length(song2.bts)-1
@@ -19,9 +19,9 @@ function [DGH, DL2Stress] = plotFeatureSimilarities( s1prefix, s2prefix, outname
         i2 = find(song2.SampleDelaysMFCC >= song2.bts(ii+1));
         Y = song2.MFCC(i1:i2, :);
         Y = bsxfun(@minus, mean(Y), Y);
-        Y = bsxfun(@times, std(Y), Y);
-        %Norm = 1./(sqrt(sum(Y.*Y, 2)));
-        %Y = Y.*(repmat(Norm, [1 size(Y, 2)]));
+%         Y = bsxfun(@times, std(Y), Y);
+        Norm = 1./(sqrt(sum(Y.*Y, 2)));
+        Y = Y.*(repmat(Norm, [1 size(Y, 2)]));
         song2.PointClouds{ii} = Y;
     end
     
