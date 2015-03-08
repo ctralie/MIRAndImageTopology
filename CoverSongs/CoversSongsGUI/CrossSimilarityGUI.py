@@ -1,5 +1,8 @@
 import wx
 from wx import glcanvas
+from OpenGL.GL import *
+from OpenGL.GLU import *
+from OpenGL.GLUT import *
 
 import matplotlib
 from matplotlib import animation
@@ -18,23 +21,35 @@ from sys import exit, argv
 import os
 import math
 import time
-import threading
 
 import pygame
 
 DEFAULT_SIZE = wx.Size(1000, 1000)
 DEFAULT_POS = wx.Point(10, 10)
 
-lock = threading.Lock()
+class DummyGLCanvas(glcanvas.GLCanvas):
+	def __init__(self, parent, plot):
+		attribs = (glcanvas.WX_GL_RGBA, glcanvas.WX_GL_DOUBLEBUFFER, glcanvas.WX_GL_DEPTH_SIZE, 24)
+		glcanvas.GLCanvas.__init__(self, parent, -1, attribList = attribs)	
+		self.context = glcanvas.GLContext(self)	
+		self.plot = plot
+		glutInit('')
+		glEnable(GL_NORMALIZE)
+		glEnable(GL_DEPTH_TEST)
+		wx.EVT_PAINT(self, self.processPaintEvent)
+	
+	def processEraseBackgroundEvent(self, event): pass #avoid flashing on MSW.
 
-class RedrawThread(threading.Thread):
-    def __init__(self, plot):
-        threading.Thread.__init__(self)
-        self.plot = plot
-    def run(self):
-    	while True:
-			self.plot.draw()
-			time.sleep(0.2)
+	def processPaintEvent(self, event):
+		dc = wx.PaintDC(self)
+		self.SetCurrent(self.context)
+		self.repaint()
+
+	def repaint(self):
+		time.sleep(0.2)
+		self.plot.draw()
+		self.SwapBuffers()
+		self.Refresh()
 
 class CrossSimilarityPlot(wx.Panel):
 	def __init__(self, parent):
@@ -96,8 +111,9 @@ class CrossSimilarityPlot(wx.Panel):
 			else:
 				#Vertical line for second song
 				self.axes.plot([self.currPos, self.currPos], [0, self.D.shape[0]], 'r')
+			self.axes.set_xlim([0, self.D.shape[1]])
+			self.axes.set_ylim([self.D.shape[0], 0])
 		self.canvas.draw()
-		#wx.PostEvent(self, self.canvas.draw)
 	
 	def OnClick(self, evt):
 		if len(self.D) == 0:
@@ -170,6 +186,9 @@ class CrossSimilaritysFrame(wx.Frame):
 		pauseButton.Bind(wx.EVT_BUTTON, self.CSPlot.OnPauseButton)
 		buttonRow.Add(playButton, 0, wx.EXPAND)
 		buttonRow.Add(pauseButton, 0, wx.EXPAND)		
+
+		self.glcanvas = DummyGLCanvas(self, self.CSPlot)
+		self.glcanvas.Refresh()
 
 		self.sizer = wx.BoxSizer(wx.VERTICAL)
 		self.sizer.Add(buttonRow, 0, wx.EXPAND)
