@@ -6,7 +6,7 @@ N = length(files2);
 K = 8;
 dim = 100;
 
-for BeatsPerWin = 8
+for BeatsPerWin = 4
     D = zeros(length(files2), length(files2));
     Dicts = load(sprintf('SongDicts%i.mat', BeatsPerWin));
     Dicts = Dicts.Ds;

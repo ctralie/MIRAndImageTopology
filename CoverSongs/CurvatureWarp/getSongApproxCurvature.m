@@ -19,5 +19,6 @@ function [ Curv, ContigDists, SkipDists ] = getSongApproxCurvature( MFCC, Delta 
     SkipDists = sqrt(sum(SkipDists.*SkipDists, 2));
     
     Curv = ContigDists./SkipDists;
+    %Curv = sqrt(24*(ContigDists - SkipDists)./(ContigDists.^3));
     Curv(isnan(Curv)) = 1;
 end

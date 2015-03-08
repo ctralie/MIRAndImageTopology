@@ -6,7 +6,10 @@ MEXINCLUDE = -I/usr/local/MATLAB/R2014b/extern/include/
 
 #LIBS = -lcudart -lcublas
 
-all: getEditDist
+all: swalignimp getEditDist
+
+swalignimp: swalignimp.cpp
+	$(MEX) -g swalignimp.cpp $(MEXINCLUDE)
 
 getEditDist: getEditDist.cpp
 	$(MEX) -g getEditDist.cpp $(MEXINCLUDE)

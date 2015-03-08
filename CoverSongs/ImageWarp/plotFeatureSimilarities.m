@@ -1,12 +1,12 @@
-function [DGH, DL2Stress] = plotFeatureSimilarities( s1prefix, s2prefix, outname )
+function [DGH, DL2Stress] = plotFeatureSimilarities( s1prefix, s2prefix, BeatsPerWin, outname )
     addpath('../../');
     song1 = load(['../covers80/TempoEmbeddings/', s1prefix, '.mat']);
     song2 = load(['../covers80/TempoEmbeddings/', s2prefix, '.mat']);
 
     %Point center and sphere-normalize point clouds
-    for ii = 1:length(song1.bts)-1
+    for ii = 1:length(song1.bts)-BeatsPerWin
         i1 = find(song1.SampleDelaysMFCC > song1.bts(ii));
-        i2 = find(song1.SampleDelaysMFCC >= song1.bts(ii+1));
+        i2 = find(song1.SampleDelaysMFCC >= song1.bts(ii+BeatsPerWin));
         Y = song1.MFCC(i1:i2, :);
         Y = bsxfun(@minus, mean(Y), Y);
 %         Y = bsxfun(@times, std(Y), Y);
@@ -14,9 +14,9 @@ function [DGH, DL2Stress] = plotFeatureSimilarities( s1prefix, s2prefix, outname
         Y = Y.*(repmat(Norm, [1 size(Y, 2)]));
         song1.PointClouds{ii} = Y;
     end
-    for ii = 1:length(song2.bts)-1
+    for ii = 1:length(song2.bts)-BeatsPerWin
         i1 = find(song2.SampleDelaysMFCC > song2.bts(ii));
-        i2 = find(song2.SampleDelaysMFCC >= song2.bts(ii+1));
+        i2 = find(song2.SampleDelaysMFCC >= song2.bts(ii+BeatsPerWin));
         Y = song2.MFCC(i1:i2, :);
         Y = bsxfun(@minus, mean(Y), Y);
 %         Y = bsxfun(@times, std(Y), Y);
@@ -61,7 +61,7 @@ function [DGH, DL2Stress] = plotFeatureSimilarities( s1prefix, s2prefix, outname
 
     %%%%%%%%%% BINARY THRESHOLD %%%%%%%%%%%%
     figure;
-    cutoff = 0.11;
+    cutoff = 0.01;
 
     subplot(221);
     imagesc(DGH < quantile(DGH(:), cutoff));
