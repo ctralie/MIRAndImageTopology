@@ -16,7 +16,7 @@ for BeatsPerWin = [8, 4, 6]
         parfor jj = 1:N
             file2 = ['../covers80/TempoEmbeddings/', files2{jj}, '.mat'];
             tic
-            row{jj} = single(getCurvSimilarity(file1, file2, BeatsPerWin));
+            row{jj} = single(getCurvSimilarity(file1, file2, BeatsPerWin, 2));
             toc
         end
         Ms(ii, :) = row;

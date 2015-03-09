@@ -1,13 +1,16 @@
-function [D] = getCurvSimilarity( file1, file2, BeatsPerWin )
+function [D] = getCurvSimilarity( file1, file2, BeatsPerWin, beatDownsample )
+    if nargin < 4
+        beatDownsample = 1;
+    end
     SamplesPerBeat = 200;
     Delta = 5;
     song1 = load(file1);
     song2 = load(file2);
-    Curv1 = getSongApproxCurvature(song1.MFCC, Delta);
-    Curv2 = getSongApproxCurvature(song2.MFCC, Delta);
+    Curv1 = getSongApproxCurvatureWindowNorm(song1.MFCC, Delta);
+    Curv2 = getSongApproxCurvatureWindowNorm(song2.MFCC, Delta);
     
-	song1.bts = song1.bts(1:2:end);
-	song2.bts = song2.bts(1:2:end);
+	song1.bts = song1.bts(1:beatDownsample:end);
+	song2.bts = song2.bts(1:beatDownsample:end);
 	
     N = length(song1.bts)-BeatsPerWin;
     M = length(song2.bts)-BeatsPerWin;
