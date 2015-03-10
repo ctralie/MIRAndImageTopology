@@ -23,9 +23,13 @@ import math
 import time
 
 import pygame
+from threading import Lock
 
 DEFAULT_SIZE = wx.Size(1000, 1000)
 DEFAULT_POS = wx.Point(10, 10)
+SCROLL_RATE = 0.9
+
+scrollLock = Lock()
 
 class DummyGLCanvas(glcanvas.GLCanvas):
 	def __init__(self, parent, plot):
@@ -66,19 +70,22 @@ class CrossSimilarityPlot(wx.Panel):
 		self.Fs = 44100
 		self.songnames = ["", ""]
 		self.SampleDelays = [np.array([]), np.array([])]
+		self.drawRange = [0, 1, 0, 1]
+		self.drawRadius = 1
 		
 		#Song Playing info
 		self.currSong = 0 #Playing the first or second song? (first is along vertical, second is along horizontal)
 		self.currPos = 0 #Position in the distance matrix
 		self.startTime = 0
 		self.Playing = False
+		self.updatingScroll = False
 		
 		self.cid = self.canvas.mpl_connect('button_press_event', self.OnClick)
-		#self.drawThread = RedrawThread(self)
-		#self.drawThread.start()
-
+		self.canvas.mpl_connect('scroll_event', self.OnScroll)
+		
 	def updateInfo(self, D, Fs, songfilename1, songfilename2, SampleDelays1, SampleDelays2):
 		self.D = D
+		self.drawRange = [0, D.shape[0], 0, D.shape[1]]
 		self.Fs = Fs
 		self.songnames = [songfilename1, songfilename2]
 		self.SampleDelays = [SampleDelays1, SampleDelays2]
@@ -102,39 +109,90 @@ class CrossSimilarityPlot(wx.Panel):
 		if thisPos != self.currPos:
 			self.currPos = thisPos
 			self.axes.clear()
-			self.axes.imshow(self.D)
+			imgplot = self.axes.imshow(self.D[self.drawRange[0]:self.drawRange[1], self.drawRange[2]:self.drawRange[3]])
+			imgplot.set_interpolation('nearest')
+#			xtimes = self.SampleDelays[1][self.drawRange[2]:self.drawRange[3]]
+#			ytimes = self.SampleDelays[0][self.drawRange[0]:self.drawRange[1]]
+#			self.figure.xticks(xtimes)
+#			self.figure.yticks(ytimes)
 			self.axes.hold(True)
 			#Plot current marker in song
 			if self.currSong == 0:
 				#Horizontal line for first song
-				self.axes.plot([0, self.D.shape[1]], [self.currPos, self.currPos], 'r')
+				self.axes.plot([0, self.drawRange[3]], [self.currPos-self.drawRange[0], self.currPos-self.drawRange[0]], 'r')
 			else:
 				#Vertical line for second song
-				self.axes.plot([self.currPos, self.currPos], [0, self.D.shape[0]], 'r')
-			self.axes.set_xlim([0, self.D.shape[1]])
-			self.axes.set_ylim([self.D.shape[0], 0])
+				self.axes.plot([self.currPos-self.drawRange[2], self.currPos-self.drawRange[2]], [0, self.drawRange[1]], 'r')
+			self.axes.set_xlim([0, self.drawRange[3]-self.drawRange[2]])
+			self.axes.set_ylim([self.drawRange[1]-self.drawRange[0], 0])
 		self.canvas.draw()
 	
 	def OnClick(self, evt):
 		if len(self.D) == 0:
 			return
 		thisSong = 0
-		if evt.button == 1: #TODO: Magic number?
+		if evt.button == 1: #TODO: Magic numbers?
 			thisSong = 0
+		elif evt.button == 2:
+			#Reset scrolling to normal
+			self.drawRange = [0, self.D.shape[0], 0, self.D.shape[1]]
+			self.drawRadius = 1
+			self.draw()
+			return
 		else:
 			thisSong = 1
 		if not (thisSong == self.currSong):
 			self.currSong = thisSong
+			print "self.Fs = %g"%self.Fs
 			pygame.mixer.init(frequency=self.Fs)
 			pygame.mixer.music.load(self.songnames[self.currSong])
 		idx = [0, 0]
-		idx[0] = int(math.floor(evt.ydata))
-		idx[1] = int(math.floor(evt.xdata))
+		idx[0] = int(math.floor(evt.ydata)) + self.drawRange[0]
+		idx[1] = int(math.floor(evt.xdata)) + self.drawRange[2]
 		print "Jumping to %g seconds in %s"%(self.SampleDelays[self.currSong][idx[self.currSong]], self.songnames[self.currSong])
 		self.startTime = self.SampleDelays[self.currSong][idx[self.currSong]]
 		pygame.mixer.music.play(0, self.startTime)
 		self.currPos = idx[self.currSong]
 		self.draw()
+
+	def OnScroll(self, evt):
+#		scrollLock.acquire()
+#		if self.updatingScroll:
+#			print "Already updating scroll"
+#			#Another thread is already updating the scroll
+#			scrollLock.release()
+#			return
+#		self.updatingScroll = True
+#		scrollLock.release()
+		idx = [0, 0]
+		idx[0] = int(math.floor(evt.ydata))
+		idx[1] = int(math.floor(evt.xdata))
+		
+		if evt.step > 0:
+			#Zoom in
+			self.drawRadius = self.drawRadius*SCROLL_RATE
+		else:
+			#Zoom out
+			self.drawRadius = self.drawRadius/SCROLL_RATE
+			if self.drawRadius > 1:
+				self.drawRadius = 1
+		#Find selected point in original coordinates
+		selX = idx[1] + self.drawRange[2]
+		selY = idx[0] + self.drawRange[0]
+		#Find new window size
+		dXWin = int(np.round(self.drawRadius*self.D.shape[1]/2.0))
+		dYWin = int(np.round(self.drawRadius*self.D.shape[0]/2.0))
+		d = [selY - dYWin, selY + dYWin, selX - dXWin, selX + dXWin]
+		d[0] = max(0, d[0])
+		d[1] = min(self.D.shape[0], d[1])
+		d[2] = max(0, d[2])
+		d[3] = min(self.D.shape[1], d[1])
+		print d
+		self.drawRange = d
+		self.draw()
+#		scrollLock.acquire()
+#		self.updatingScroll = False
+#		scrollLock.release()
 
 	def OnPlayButton(self, evt):
 		if len(self.SampleDelays[0]) == 0:
