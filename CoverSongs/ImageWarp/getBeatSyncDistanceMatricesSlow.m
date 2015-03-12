@@ -1,7 +1,11 @@
-function [ D ] = getBeatSyncDistanceMatricesSlow( sprefix, dim, BeatsPerWin )
+function [ D ] = getBeatSyncDistanceMatricesSlow( sprefix, dim, BeatsPerWin, beatDownsample )
     addpath('../../');
+    if nargin < 4
+        beatDownsample = 1;
+    end    
     song = load(['../covers80/TempoEmbeddings/', sprefix, '.mat']);
 
+	song.bts = song.bts(1:beatDownsample:end);    
     N = length(song.bts)-BeatsPerWin;
     
     D = zeros(N, dim*dim);

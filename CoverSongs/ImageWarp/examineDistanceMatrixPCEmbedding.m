@@ -47,7 +47,7 @@ for ii = 1:size(D, 1)
         axis equal;
     end
     
-    %[~, Y, lambda] = pca(full(alphas'));
+    %[~, Y, lambdas] = pca(full(alphas'));
     [~, Y, lambdas] = pca(X');
     
     gridLocs = repmat(1:GridSize, [GridSize, 1]);
@@ -65,7 +65,7 @@ for ii = 1:size(D, 1)
     idx = randperm(size(Y, 1), 1000);
     plot3(Y(:, 1), Y(:, 2), Y(:, 3), '.');
     axis equal;
-    title(sprintf('Variance Explained: %g', sum(lambda(1:3))/sum(lambda)));
+    title(sprintf('Variance Explained: %g', sum(lambdas(1:3))/sum(lambdas)));
     
     set(gcf, 'PaperUnits', 'centimeters');
     set(gcf, 'PaperPosition', [0 0 45 15]); 

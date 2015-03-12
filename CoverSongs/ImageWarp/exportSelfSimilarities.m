@@ -17,6 +17,6 @@ for ii = 1:length(files1)
     strs = strsplit(files1{ii}, '/');
     s = strs{1};
     N = min(20, length(s));
-    filename = ['ImageL2_8/', s(1:N), '.mat']
+    filename = ['CurvL2_8/', s(1:N), '.mat']
     save(filename, 'D', 'Fs', 'SampleDelays1', 'SampleDelays2', 'songfilename1', 'songfilename2');
 end
