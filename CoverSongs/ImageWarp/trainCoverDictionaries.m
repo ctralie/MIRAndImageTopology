@@ -2,6 +2,7 @@ list1 = '../covers80/covers32k/list1.list';
 list2 = '../covers80/covers32k/list2.list';
 
 files1 = textread(list1, '%s\n');
+files2 = textread(list2, '%s\n');
 N = length(files1);
 K = 8;
 dim = 100;

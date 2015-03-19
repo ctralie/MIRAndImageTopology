@@ -7,7 +7,10 @@ N = length(files1);
 
 dim = 200;
 BeatsPerWin = 8;
-Ms = cell(N, N);
+dirname = sprintf('AllDissimilarities%i', BeatsPerWin);
+if ~exist(dirname)
+    mkdir(dirname);
+end
 
 DsOrig = cell(1, N);
 parfor ii = 1:N
@@ -19,12 +22,14 @@ for ii = 1:N
     fprintf(1, 'Doing %i of %i\n', ii, N);
     tic
     D = single(getBeatSyncDistanceMatricesSlow(files2{ii}, dim, BeatsPerWin));
-    for jj = 1:N
-        Ms{ii}{jj} = pdist2(DsOrig{jj}, D);
+    Ms = cell(1, N);
+    parfor jj = 1:N
+        Ms{jj} = pdist2(DsOrig{jj}, D);
         fprintf(1, '.');
     end
     fprintf(1, '\n');
     toc
+    save(sprintf('AllDissimilarities%i/%i.mat', BeatsPerWin, ii), 'Ms');
 end
 
-save(sprintf('AllDissimilarities%i.mat', BeatsPerWin), 'Ms');
+

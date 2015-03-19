@@ -1,5 +1,5 @@
 addpath('../SequenceAlignment');
-load('../CurvatureWarp/AllDissimilarities8');
+FolderPrefix = 'AllDissimilarities8';
 D = zeros(80, 80);
 
 thresh = 0.15;
@@ -8,10 +8,11 @@ cdf = cumsum(hist.hist);
 cutoff = hist.bins(find(cdf > thresh, 1));
 
 for ii = 1:80
-    ii
+    load(sprintf('%s/%i.mat', FolderPrefix, ii));
+    fprintf(1, 'Doing %i of %i...\n', ii, 80);
     for jj = 1:80
-        cutoff = quantile(Ms{ii, jj}(:), 0.05);
-        M = double(Ms{ii, jj} < cutoff);
+        cutoff = quantile(Ms{jj}(:), 0.1);
+        M = double(Ms{jj} < cutoff);
         D(ii, jj) = swalignimp(M)/sum(size(M));
     end
 end
