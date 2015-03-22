@@ -6,13 +6,13 @@ files2 = textread(list2, '%s\n');
 N = length(files1);
 K = 8;
 dim = 100;
+beatDownsample = 2;
 
 Ds = cell(N, 1);
-for BeatsPerWin = [4, 8]
-    parfor ii = 1:N
+for BeatsPerWin = 8
+    for ii = 1:N
         fprintf(1, 'Doing %s\n', files1{ii});
-        Ds{ii} = getDictionary(files1{ii}, K, dim, BeatsPerWin);
+        Ds{ii} = getDictionary(files1{ii}, K, dim, BeatsPerWin, beatDownsample);
     end
     save(sprintf('SongDicts%i.mat', BeatsPerWin), 'Ds');
 end
-

@@ -1,33 +1,22 @@
 %Trains a curve dissimilarity dictionary with "K" elements, resampling each
 %image to be dim x dim pixels
-function [D] = getDictionary(sprefix, K, dim, BeatsPerWin, DOPLOT)
+function [D] = getDictionary(sprefix, K, dim, BeatsPerWin, beatDownsample, DOPLOT)
     if (nargin < 4)
         BeatsPerWin = 1;
     end
     if (nargin < 5)
+        beatDownsample = 1;
+    end
+    if (nargin < 6)
         DOPLOT = 0;
     end
-    
+    addpath('../ImageWarp');
     addpath(genpath('spams-matlab'));
     addpath('../../');
-    song = load(['../covers80/TempoEmbeddings/', sprefix, '.mat']);
-
-
-    N = length(song.bts)-BeatsPerWin;
-
-    X = zeros(dim*dim, N);
 
     %Point center and sphere-normalize point clouds
-    for ii = 1:N
-        i1 = find(song.SampleDelaysMFCC > song.bts(ii));
-        i2 = find(song.SampleDelaysMFCC >= song.bts(ii+BeatsPerWin));
-        if isempty(song.MFCC(i1:i2, :))
-            continue;
-        end
-        D = getScaledDist(song.MFCC(i1:i2, :), 1);
-        D = imresize(D, [dim, dim]);
-        X(:, ii) = D(:);
-    end
+    X = getBeatSyncDistanceMatricesSlow(sprefix, dim, BeatsPerWin, beatDownsample);
+    X = X';
 
     param.K = K;
     param.numThreads = 4;

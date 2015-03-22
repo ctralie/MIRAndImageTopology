@@ -1,11 +1,13 @@
-function [ D ] = getL2ShiftCrossSimilarity( file1, file2, dim, BeatsPerWin, shift )
+function [ D ] = getL2ShiftCrossSimilarity( file1, file2, dim, BeatsPerWin, shift, Ds1, Ds2 )
     addpath('..');
-    Ds1 = getBeatSyncDistanceMatricesSlow(file1, dim, BeatsPerWin);
-    Ds2 = getBeatSyncDistanceMatricesSlow(file2, dim, BeatsPerWin);
+    if nargin < 6
+        Ds1 = getBeatSyncDistanceMatricesSlow(file1, dim, BeatsPerWin);
+    end
+    if nargin < 7
+        Ds2 = getBeatSyncDistanceMatricesSlow(file2, dim, BeatsPerWin);
+    end
     N = size(Ds1, 1);
     M = size(Ds2, 1);
-    N = 100;
-    M = 100;    
     D = zeros(N, M);
     
     for ii = 1:N

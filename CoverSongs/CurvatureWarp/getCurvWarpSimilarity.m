@@ -1,0 +1,53 @@
+function [D, beats1, beats2] = getCurvWarpSimilarity( file1, file2, BeatsPerWin, beatDownsample )
+    if nargin < 4
+        beatDownsample = 1;
+    end
+    SamplesPerBeat = 200;
+    Delta = 5;
+    song1 = load(file1);
+    song2 = load(file2);
+    Curv1 = getSongApproxCurvatureWindowNorm(song1.MFCC, Delta);
+    Curv2 = getSongApproxCurvatureWindowNorm(song2.MFCC, Delta);
+    
+	song1.bts = song1.bts(1:beatDownsample:end);
+	song2.bts = song2.bts(1:beatDownsample:end);    
+    
+    N = length(song1.bts)-BeatsPerWin;
+    M = length(song2.bts)-BeatsPerWin;
+    beats1 = zeros(N, BeatsPerWin*SamplesPerBeat);
+    beats2 = zeros(M, BeatsPerWin*SamplesPerBeat);
+    for ii = 1:N
+        i1 = find(song1.SampleDelaysMFCC > song1.bts(ii), 1);
+        i2 = find(song1.SampleDelaysMFCC >= song1.bts(ii+BeatsPerWin), 1);
+        i1 = min(i1, length(Curv1));
+        i2 = min(i2, length(Curv1));
+        c = Curv1(i1:i2);
+        if isempty(c)
+            continue;
+        end
+        beats1(ii, :) = imresize(c, [SamplesPerBeat*BeatsPerWin, 1]);
+    end
+    
+    for ii = 1:M
+        i1 = find(song2.SampleDelaysMFCC > song2.bts(ii));
+        i2 = find(song2.SampleDelaysMFCC >= song2.bts(ii+BeatsPerWin));
+        i1 = min(i1, length(Curv2));
+        i2 = min(i2, length(Curv2));
+        c = Curv2(i1:i2);
+        if isempty(c)
+            continue;
+        end
+        beats2(ii, :) = imresize(c, [SamplesPerBeat*BeatsPerWin, 1]);
+    end
+    
+    D = zeros(N, M);
+    for ii = 1:N
+        ii
+        parfor jj = 1:M
+            D(ii, jj) = align1DSequences(beats1(ii, :), beats2(jj, :));
+            fprintf(1, '.');
+        end
+        fprintf(1, '\n');
+    end
+    
+end
