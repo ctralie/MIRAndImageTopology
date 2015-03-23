@@ -1,22 +1,22 @@
 %song: Relative path to song to use
 %filename: The name of the output file
 %doRAW: Compute raw embedding?
-function [] = getDelaySeriesMat( song, hopSize, skipSize, windowSize, filePrefix, doRAW )
+function [] = getDelaySeriesMat( soundfilename, hopSize, skipSize, windowSize, filePrefix, doRAW )
     if nargin < 6
        doRaw = 0; 
     end
-    [soundSamples, Fs] = audioread(song);
+    [soundSamples, Fs] = audioread(soundfilename);
     if size(soundSamples, 2) > 1
         soundSamples = mean(soundSamples, 2);%Put down to one channel if necessary
     end
-    [DelaySeries, ~, SampleDelays] = getDelaySeriesFeatures(song, hopSize, skipSize, windowSize);
+    [DelaySeries, ~, SampleDelays] = getDelaySeriesFeatures(soundfilename, hopSize, skipSize, windowSize);
     
     SampleDelays = SampleDelays/Fs;
     
     save(sprintf('%sCAF.mat', filePrefix), 'DelaySeries', 'SampleDelays', 'soundSamples', 'Fs');
 
     if doRaw == 1
-        DelaySeries = getDelaySeriesRaw(song, hopSize, skipSize, windowSize);
+        DelaySeries = getDelaySeriesRaw(soundfilename, hopSize, skipSize, windowSize);
         fprintf(1, 'There are %i samples\n', size(DelaySeries, 1));
         DelaySeries = bsxfun(@minus, mean(DelaySeries), DelaySeries);
 
@@ -26,7 +26,6 @@ function [] = getDelaySeriesMat( song, hopSize, skipSize, windowSize, filePrefix
         DelaySeries = cmdscale(D);
         DelaySeries = DelaySeries(:, 1:3);
         disp('Finished dimension reduction');
-
-        save(sprintf('%sRaw.mat', filePrefix), 'DelaySeries', 'SampleDelays', 'soundSamples', 'Fs');
+        save(sprintf('%sRaw.mat', filePrefix), 'DelaySeries', 'SampleDelays', 'soundfilename', 'Fs');
     end
 end
