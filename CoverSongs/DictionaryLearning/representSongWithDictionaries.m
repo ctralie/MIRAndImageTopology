@@ -1,12 +1,15 @@
 %Trains a curve dissimilarity dictionary with "K" elements, resampling each
 %image to be dim x dim pixels
-function [alphas, fits] = representSongWithDictionaries(sprefix, Dicts, dim, BeatsPerWin, beatDownsample)
+function [alphas, fits] = representSongWithDictionaries(sprefix, Dicts, dim, BeatsPerWin, beatDownsample, lambda)
     addpath('../ImageWarp');
     if (nargin < 4)
         BeatsPerWin = 1;
     end
     if (nargin < 5)
         beatDownsample = 1;
+    end
+    if (nargin < 6)
+        lambda = 0.15;%Sparsity vs fit tradeoff
     end
     
     addpath(genpath('spams-matlab'));
@@ -16,7 +19,7 @@ function [alphas, fits] = representSongWithDictionaries(sprefix, Dicts, dim, Bea
     X = X';
 
     param.numThreads = 4;
-    param.lambda = 0.15;
+    param.lambda = lambda;
     param.iter = 1000;
     param.mode = 2;
     param.posAlpha = 1;

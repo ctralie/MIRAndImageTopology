@@ -11,7 +11,7 @@ function [ D ] = getBeatSyncDistanceMatricesSlow( sprefix, dim, BeatsPerWin, bea
     D = zeros(N, dim*dim);
     
     %Point center and sphere-normalize point clouds
-    for ii = 1:N
+    parfor ii = 1:N
         i1 = find(song.SampleDelaysMFCC > song.bts(ii));
         i2 = find(song.SampleDelaysMFCC >= song.bts(ii+BeatsPerWin));
         Y = song.MFCC(i1:i2, :);
