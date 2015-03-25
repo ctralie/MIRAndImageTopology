@@ -5,10 +5,10 @@ addpath(genpath('spams-matlab'));
 list2 = '../covers80/covers32k/list2.list';
 files2 = textread(list2, '%s\n');
 
-lambdas = [0.1, 1, 10];
+lambdas = [100, 1000, 10000];
 
 alphas = cell(80, length(lambdas));
-DFit = zeros(80, length(lambdas));
+DFit = cell(80, length(lambdas));
 DAlphaAlign = zeros(80, length(lambdas));
 
 X = getBeatSyncDistanceMatricesSlow(files2{songIdx}, dim, BeatsPerWin, 2);
@@ -33,10 +33,10 @@ for ii = 1:80
         tic
         alphas{ii, kk} = mexLasso(X, Dict, param);
         toc
-        DFit(ii, kk) = mean(0.5*sum((X-Dict*alphas{ii, kk}).^2));
+        DFit{ii, kk} = 0.5*sum((X-Dict*alphas{ii, kk}).^2, 1);
         M = full(double(alphas{ii, kk} > 0));
         DAlphaAlign(ii, kk) = swalignimp(M)/sum(size(M));
     end
 end
 
-save(sprintf('SelfDicts%i/Results%i.mat', dim, songIdx), 'lambdas', 'alphas', 'DFit', 'DAlphaAlign');
+save(sprintf('SelfDicts%i/Results%i_2.mat', dim, songIdx), 'lambdas', 'alphas', 'DFit', 'DAlphaAlign');

@@ -1,6 +1,6 @@
 //Programmer: Chris Tralie
-//Purpose: To implement an implicit version of Smith-Waterman that works on
-//a binary dissimilarity matrix
+//Purpose: To implement a quick estimation of curvature over a sliding window
+//which approximates curvature as the ratio of arc length to chord length
 #include <mex.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -10,9 +10,5 @@ all: getL2DistWithShiftsMex
 
 getL2DistWithShiftsMex: getL2DistWithShiftsMex.cpp
 	$(MEX) -g getL2DistWithShiftsMex.cpp $(MEXINCLUDE)
-
-getVerticalDissimilarityColumns: getVerticalDissimilarityColumns.cpp
-	$(MEX) -g getVerticalDissimilarityColumns.cpp $(MEXINCLUDE)
-	
 clean:
 	rm -f *.mexa64
