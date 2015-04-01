@@ -5,13 +5,13 @@ files1 = textread(list1, '%s\n');
 files2 = textread(list2, '%s\n');
 N = length(files1);
 K = 8;
-beatDownsample = 2;
+beatDownsample = 1;
 
 Ds = cell(N, 1);
-for K = [4, 8, 16]
-    for dim = [100, 200]
-        for BeatsPerWin = [1, 2, 4, 8, 16]
-            filename = sprintf('SongDicts_%i_%i_%i.mat', K, dim, BeatsPerWin);
+for K = [8]%[4, 8, 16]
+    for dim = 100%[100, 200]
+        for BeatsPerWin = 8%[1, 2, 4, 8, 16]
+            filename = sprintf('SongDicts_%i_%i_%i_%i.mat', K, dim, BeatsPerWin, beatDownsample);
             if exist(filename)
                 continue;
             end

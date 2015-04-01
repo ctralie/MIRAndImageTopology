@@ -30,7 +30,9 @@ function [ DGMs ] = getBeatSync1DRips( sprefix, BeatsPerWin, beatDownsample, tda
         for kk = 1:BeatsPerWin
             thisi1 = find(song.SampleDelaysMFCC(i1:end) > song.bts(ii+kk-1), 1);
             thisi2 = find(song.SampleDelaysMFCC(i1:end) >= song.bts(ii+kk), 1);
-            DSub = squareform(pdist(Y(thisi1:thisi2, :)));
+            %Downsample the points for speed if taking larger beat
+            %intervals
+            DSub = squareform(pdist(Y(thisi1:beatDownsample:thisi2, :)));
             tda.RCA1( { 'settingsFile=data/cts.txt', 'supplyDataAs=distanceMatrix', ...
                sprintf('distanceBoundOnEdges=%g', max(DSub(:)) + 10)}, DSub );
             I = tda.getResultsRCA1(1).getIntervals();

@@ -3,16 +3,16 @@ list2 = '../covers80/covers32k/list2.list';
 
 files2 = textread(list2, '%s\n');
 N = length(files2);
-beatDownsample = 2;
+beatDownsample = 1;
 
 for K = [4, 8, 16]
     for dim = [100, 200]
         for BeatsPerWin = [1, 2, 4, 8, 16]
-            filename = sprintf('DictResults_%i_%i_%i.mat', K, dim, BeatsPerWin);
+            filename = sprintf('DictResults_%i_%i_%i_%i.mat', K, dim, BeatsPerWin, beatDownsample);
             if ~exist(filename)
                 fprintf(1, 'Doing %s\n', filename);
                 D = zeros(length(files2), length(files2));
-                Dicts = load(sprintf('SongDicts_%i_%i_%i.mat', K, dim, BeatsPerWin));
+                Dicts = load(sprintf('SongDicts_%i_%i_%i_%i.mat', K, dim, BeatsPerWin, beatDownsample));
                 Dicts = Dicts.Ds;
                 parfor ii = 1:N
                     fprintf(1, 'Doing %s\n', files2{ii});
@@ -38,7 +38,7 @@ for K = [4, 8, 16]
                 end
             end
             title(sprintf('%i of %i correct', sum(1:80 == idx'), 80));
-            print('-dpng', '-r100', sprintf('DictResults_%i_%i_%i.png', K, dim, BeatsPerWin));
+            print('-dpng', '-r100', sprintf('DictResults_%i_%i_%i_%i.png', K, dim, BeatsPerWin, beatDownsample));
         end
     end
 end

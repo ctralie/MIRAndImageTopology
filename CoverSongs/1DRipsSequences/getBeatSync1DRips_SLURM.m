@@ -1,4 +1,4 @@
-%Parameters from SLURM: songIdx, BeatsPerWin
+%Parameters from SLURM: songIdx, BeatsPerWin, beatDownsample
 javaclasspath('jars/tda.jar');
 import api.*;
 tda = Tda();
@@ -8,12 +8,11 @@ files1 = textread(list1, '%s\n');
 list2 = '../covers80/covers32k/list2.list';
 files2 = textread(list2, '%s\n');
 
-dirname = sprintf('AllRips%i', BeatsPerWin);
+dirname = sprintf('AllRips%i_%i', BeatsPerWin, beatDownsample);
 if ~exist(dirname)
     mkdir(dirname);
 end
 
-beatDownsample = 2;
 ii = songIdx;
 if (ii > 80)
     ii = ii - 80;
@@ -24,4 +23,4 @@ end
 fprintf(1, 'Doing %s...\n', filePrefix);
 DGMs = getBeatSync1DRips(filePrefix, BeatsPerWin, beatDownsample, tda);
 
-save(sprintf('AllRips%i/%i.mat', BeatsPerWin, songIdx), 'DGMs');
+save(sprintf('AllRips%i_%i/%i.mat', BeatsPerWin, beatDownsample, songIdx), 'DGMs');

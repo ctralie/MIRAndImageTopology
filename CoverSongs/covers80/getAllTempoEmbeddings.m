@@ -13,7 +13,7 @@ for songIdx = 1:length(files)
     bts = load(beatsFilename);
     bts = bts.bts;
     tempoPeriod = mean(bts(2:end) - bts(1:end-1));
-    [Chroma, SampleDelaysChroma] = getChromaTempoWindow(filename, tempoPeriod);
+    [Chroma, SampleDelaysChroma] = getChromaTempoWindow(filename, tempoPeriod, 36);
     [MFCC, SampleDelaysMFCC] = getMFCCTempoWindow(filename, tempoPeriod);
     save(outname, 'Chroma', 'SampleDelaysChroma', 'MFCC', 'SampleDelaysMFCC', 'bts');
 end
