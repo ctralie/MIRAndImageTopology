@@ -1,10 +1,6 @@
-function [ oti, corrs ] = getGlobalOTI( s1prefix, s2prefix )
+function [ oti, corrs ] = getGlobalOTI( Chroma1, Chroma2 )
 %Get the "optimal transposition index" to put chroma 1 into 
 %chroma 2's key.
-    song1 = load(['../covers80/TempoEmbeddings/', s1prefix, '.mat']);
-    song2 = load(['../covers80/TempoEmbeddings/', s2prefix, '.mat']);
-    Chroma1 = song1.Chroma;
-    Chroma2 = song2.Chroma;
     %Take the means before taking the maxes
     Chroma1 = mean(Chroma1, 1);
     MaxChroma1 = max(Chroma1, [], 2);
