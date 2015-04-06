@@ -9,17 +9,23 @@ beatDownsample = 2;
 
 NNFunction = @(x, y, dim) pdist2(x(:)', y(:)'); %Test with L2 (dim is dummy variable in this case)
 
-idx1 = 12;
-idx2 = 12;
+idx1 = 37;
+idx2 = 37;
 fprintf(1, 'Testing %s verus %s...\n', files1{idx1}, files2{idx2});
 disp('Getting similarity matrices 1...');
 Ds1 = getBeatSyncDistanceMatricesSlow(files1{idx1}, dim, BeatsPerWin, beatDownsample);
 disp('Geting similarity matrices 2...');
 Ds2 = getBeatSyncDistanceMatricesSlow(files2{idx2}, dim, BeatsPerWin, beatDownsample);
 
+disp('Doing patch match...');
+tic
 [D, NNF] = patchMatch1DMatlab( files1{idx1}, files2{idx2}, dim, BeatsPerWin, NNFunction, 5, 3, Ds1, Ds2 );
+toc
 
+disp('Doing brute force...');
+tic
 DBrute = pdist2(Ds1, Ds2);
+toc
 [~, idx] = sort(DBrute, 2);
 k = quantile(DBrute(:), 0.1);
 DBruteBinary = (idx <= 10);

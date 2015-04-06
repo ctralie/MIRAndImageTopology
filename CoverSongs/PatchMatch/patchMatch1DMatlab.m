@@ -3,7 +3,7 @@
 %NIters: Number of iterations (not many are needed before convergence)
 %K: Number of nearest neighbors to consider in the nearest neighbor field
 %(for reshaping purposes) and returns a distance
-function [ D, NNF ] = patchMatch1DMatlab( file1, file2, dim, BeatsPerWin, NNFunction, NIters, K, Ds1, Ds2 )
+function [ D, NNF, TotalQueried ] = patchMatch1DMatlab( file1, file2, dim, BeatsPerWin, NNFunction, NIters, K, Ds1, Ds2 )
     addpath('..');
     SwitchOddEven = 0;
     if nargin < 6
