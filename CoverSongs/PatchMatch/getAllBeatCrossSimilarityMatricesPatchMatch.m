@@ -43,7 +43,7 @@ for ii = 1:N
     TotalQueries(ii, :) = thisQueries;
     fprintf(1, '\n');
     toc
-    save(sprintf('AllDissimilarities%i/%i.mat', BeatsPerWin, ii), 'Ms');
+    save(sprintf('%s/%i.mat', dirname, ii), 'Ms');
 end
 
 

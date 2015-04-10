@@ -9,8 +9,8 @@ beatDownsample = 2;
 
 NNFunction = @(x, y, dim) pdist2(x(:)', y(:)'); %Test with L2 (dim is dummy variable in this case)
 
-idx1 = 37;
-idx2 = 37;
+idx1 = 76;
+idx2 = 76;
 fprintf(1, 'Testing %s verus %s...\n', files1{idx1}, files2{idx2});
 disp('Getting similarity matrices 1...');
 Ds1 = getBeatSyncDistanceMatricesSlow(files1{idx1}, dim, BeatsPerWin, beatDownsample);

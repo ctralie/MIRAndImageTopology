@@ -3,7 +3,7 @@
 %NIters: Number of iterations (not many are needed before convergence)
 %K: Number of nearest neighbors to consider in the nearest neighbor field
 %(for reshaping purposes) and returns a distance
-function [ D, NNF, TotalQueried ] = patchMatch1DMatlab( file1, file2, dim, BeatsPerWin, NNFunction, NIters, K, Ds1, Ds2 )
+function [ NNF ] = patchMatch1DMatlab( file1, file2, dim, BeatsPerWin, NNFunction, NIters, K, Ds1, Ds2 )
     addpath('..');
     SwitchOddEven = 0;
     if nargin < 6
@@ -22,7 +22,7 @@ function [ D, NNF, TotalQueried ] = patchMatch1DMatlab( file1, file2, dim, Beats
     N = size(Ds1, 1);
     M = size(Ds2, 1);
     
-    Queried = zeros(N, M);%Keep track of distances that are already queried
+    Queried = sparse(N, M);%Keep track of distances that are already queried
     %so that no work is redone (TODO: Make this sparse?)
     queries = 0;
     
@@ -33,14 +33,20 @@ function [ D, NNF, TotalQueried ] = patchMatch1DMatlab( file1, file2, dim, Beats
     DNNF = zeros(N, K);
     alpha = 0.5;
     for ii = 1:N
+        if N > 1000 && mod(ii, 1000) == 0
+            fprintf(1, '.');
+        end
         for kk = 1:K
             DNNF(ii, kk) = NNFunction(Ds1(ii, :), Ds2(NNF(ii, kk), :), dim);
-            Queried(ii, NNF(ii, kk)) = 1;
+            %Queried(ii, NNF(ii, kk)) = 1;
         end
     end
     for iter = 1:NIters
         fprintf(1, 'iter = %i\n', iter);
         for ii = 1:N
+            if N > 1000 && mod(ii, 1000) == 0
+                fprintf(1, '.');
+            end
             %STEP 1: Propagate
             idx = ii;%Index of current pixel
             di = -1;
@@ -59,7 +65,7 @@ function [ D, NNF, TotalQueried ] = patchMatch1DMatlab( file1, file2, dim, Beats
                     if Queried(ii, otherM) %Don't repeat work
                         continue;
                     end
-                    Queried(ii, otherM) = 1;
+                    %Queried(ii, otherM) = 1;
                     indices(K+kk) = otherM;
                     dists(K+kk) = NNFunction(Ds1(idx, :), Ds2(otherM, :));
                 end
@@ -70,7 +76,6 @@ function [ D, NNF, TotalQueried ] = patchMatch1DMatlab( file1, file2, dim, Beats
                 NNF(ii, :) = indices(1:K);
                 DNNF(ii, :) = dists(1:K);
             end
-            
             %STEP 2: Random search
             Ri = M*(2*rand(1) - 1);
             radii = [];
@@ -91,7 +96,7 @@ function [ D, NNF, TotalQueried ] = patchMatch1DMatlab( file1, file2, dim, Beats
                     if Queried(ii, otherM) %Don't repeat work
                         continue;
                     end
-                    Queried(ii, otherM) = 1;
+                    %Queried(ii, otherM) = 1;
                     indices(K+(rr-1)*K+kk) = otherM;
                     dists(K+(rr-1)*K+kk) = NNFunction(Ds1(idx, :), Ds2(otherM, :));
                 end
@@ -103,20 +108,5 @@ function [ D, NNF, TotalQueried ] = patchMatch1DMatlab( file1, file2, dim, Beats
             NNF(ii, :) = indices(1:K);
             DNNF(ii, :) = dists(1:K);
         end
-        
-        TotalQueried = sum(Queried(:));
-        fprintf(1, 'TotalQueried = %i\n', TotalQueried);
-        %Copy over results into sparse distance matrix
-        D = zeros(N, M);
-        for ii = 1:N
-            for kk = 1:K
-                D(ii, NNF(ii, kk)) = 1;
-            end
-        end
-        imagesc(D);
-        
-        title(sprintf('Iteration %i, %i Queried (%g Percent)', iter, ...
-            TotalQueried, 100.0*TotalQueried/(N*M)));
-        print('-dpng', '-r100', sprintf('iter%i.png', iter));
     end
 end
