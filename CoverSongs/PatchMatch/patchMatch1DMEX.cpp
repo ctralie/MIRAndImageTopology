@@ -137,13 +137,15 @@ void mexFunction(int nOutArray, mxArray *OutArray[], int nInArray, const mxArray
 	double maxD;
 	//Preallocate vector lists storing new neighbors to save time
 	std::vector<NNInfo> propArr(K*2);
-	std::vector<NNInfo> debiasArr(K*NMaxDebias);
+	std::vector<NNInfo> debiasArr(K*(NMaxDebias+1));
 	
 	//////////////////////////////////////////////////////////
 	///////////////  MAIN ALGORITHM //////////////////////////
 	//////////////////////////////////////////////////////////
 	
 	for (int iter = 0; iter < NIters; iter++) {
+		mexPrintf("Iteration %i...\n", iter);
+		mexEvalString("drawnow");
 		for (int i = 0; i < N; i++) {
 			//Step 1: Propagate
 			if (i > 0) {
@@ -197,7 +199,7 @@ void mexFunction(int nOutArray, mxArray *OutArray[], int nInArray, const mxArray
 			}
 			//Check random neighbors
 			for (int r = 0; r < NR; r++) {
-				int dr = (int)round(Ri*pow(ALPHA, r));
+				int dr = (int)floor(Ri*pow(ALPHA, r));
 				for (int k = 0; k < K; k++) {
 					otherM = NNF[i+k*N] + dr;
 					if (otherM >= 0 && otherM < M) {

@@ -3,9 +3,10 @@
 %NIters: Number of iterations (not many are needed before convergence)
 %K: Number of nearest neighbors to consider in the nearest neighbor field
 %(for reshaping purposes) and returns a distance
-function [ NNF ] = patchMatch1DMatlab( file1, file2, dim, BeatsPerWin, NNFunction, NIters, K, Ds1, Ds2 )
+function [ NNF, Queries ] = patchMatch1DMatlab( file1, file2, dim, BeatsPerWin, NNFunction, NIters, K, Ds1, Ds2 )
     addpath('..');
     SwitchOddEven = 0;
+    Queries = 0;
     if nargin < 6
         NIters = 5;
     end
@@ -65,7 +66,8 @@ function [ NNF ] = patchMatch1DMatlab( file1, file2, dim, BeatsPerWin, NNFunctio
                     if Queried(ii, otherM) %Don't repeat work
                         continue;
                     end
-                    %Queried(ii, otherM) = 1;
+                    Queried(ii, otherM) = 1;
+                    Queries = Queries + 1;
                     indices(K+kk) = otherM;
                     dists(K+kk) = NNFunction(Ds1(idx, :), Ds2(otherM, :));
                 end
@@ -80,7 +82,7 @@ function [ NNF ] = patchMatch1DMatlab( file1, file2, dim, BeatsPerWin, NNFunctio
             Ri = M*(2*rand(1) - 1);
             radii = [];
             jj = 1;
-            while round(Ri*alpha^jj) > 1
+            while abs(round(Ri*alpha^jj)) > 1
                 radii = [radii int32(round(Ri*alpha^jj))];
                 jj = jj + 1;
             end
@@ -96,7 +98,8 @@ function [ NNF ] = patchMatch1DMatlab( file1, file2, dim, BeatsPerWin, NNFunctio
                     if Queried(ii, otherM) %Don't repeat work
                         continue;
                     end
-                    %Queried(ii, otherM) = 1;
+                    Queried(ii, otherM) = 1;
+                    Queries = Queries + 1;
                     indices(K+(rr-1)*K+kk) = otherM;
                     dists(K+(rr-1)*K+kk) = NNFunction(Ds1(idx, :), Ds2(otherM, :));
                 end

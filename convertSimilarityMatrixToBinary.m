@@ -3,7 +3,6 @@ function [ B ] = convertSimilarityMatrixToBinary( D,  kappa )
 %of D
     N = size(D, 1);
     M = size(D, 2);
-    B = zeros(N, M);
     [~, idxcol] = sort(D, 2);
     [~, idxrow] = sort(D, 1);
     cutoff1 = round(kappa*N);

@@ -1,5 +1,9 @@
-function [Chroma, SampleDelays] = getChromaTempoWindow( filename, tempoPeriod, AvgFactor )
+function [Chroma, SampleDelays] = getChromaTempoWindow( filename, tempoPeriod, NChromaBins, AvgFactor )
     addpath('chroma-ansyn');
+    
+    if nargin < 3
+        NChromaBins = 12;
+    end
     
     if iscell(filename)
         X = filename{1};
@@ -15,7 +19,7 @@ function [Chroma, SampleDelays] = getChromaTempoWindow( filename, tempoPeriod, A
     macroHopSize = round(Fs/(20*4));
     
     %Get as close as possible to 200 samples per window
-    windowSamples = Fs*tempoPeriod; 
+    windowSamples = Fs*tempoPeriod;
     hopSize = round(windowSamples/200)
     macroHopSize = round(macroHopSize/hopSize)*hopSize
     NHops = macroHopSize/hopSize;%Number of offsets at which to compute chroma
@@ -27,7 +31,7 @@ function [Chroma, SampleDelays] = getChromaTempoWindow( filename, tempoPeriod, A
     parfor ii = 1:NHops
         fprintf(1, 'Calculating chromas %i of %i\n', ii, NHops);
         offset = 1+(ii-1)*hopSize;
-        C{ii} = chromagram_IF(X(offset:end), Fs, windowSize);
+        C{ii} = chromagram_IF(X(offset:end), Fs, windowSize, NChromaBins);
     end
     CSizes = cellfun(@(x) size(x, 2), C);
     Chroma = zeros(size(C{1}, 1), sum(CSizes));
@@ -36,7 +40,7 @@ function [Chroma, SampleDelays] = getChromaTempoWindow( filename, tempoPeriod, A
     end
     %Now perform averaging by the average factor to make the effective
     %window size of each window
-    if nargin < 3
+    if nargin < 4
         AvgFactor = round(windowSamples/windowSize)
     end
     NextChroma = zeros(size(Chroma, 1), size(Chroma, 2) - AvgFactor + 1);

@@ -20,11 +20,13 @@ function [ DMax, DSum ] = get3DMeshHausdorffCrossSimilarity( file1, file2, dim, 
         parfor jj = 1:M
             Y = [Locs Ds2(jj, :)'];
             DTY = delaunayTriangulation(Y);
+            tic
             [~, dists1] = DTX.nearestNeighbor(Y);
             [~, dists2] = DTY.nearestNeighbor(X);
             thisDSum(jj) = sum(dists1) + sum(dists2);
             thisDMax(jj) = max(max(dists1), max(dists2)); %This is true Hausdorff Distance
             fprintf(1, '.');
+            toc
         end
         DSum(ii, :) = thisDSum;
         DMax(ii, :) = thisDMax;

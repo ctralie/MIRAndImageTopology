@@ -1,14 +1,19 @@
 %Implement point to point fractional RMSD ICP from P1 to P2, as described in 
 %"Outlier Robust ICP for Minimizing Fractional RMSD" (2007): Phillips, Liu, Tomasi
-function [ TFinal, P, iters, fs ] = FICP( P1, P2, lambda, MaxIter, DOPLOT )
+function [ TFinal, P, iters, fs ] = FICP( P1, P2, lambda, MaxIter, DORESAMPLE, DOPLOT )
     if nargin < 5
+        DORESAMPLE = 0;
+    end
+    if nargin < 6
         DOPLOT = 0;
     end
     dim = size(P1, 2);
     
-    %P1, P2 have points evenly spaced by arc length after this
-    [~, ~, P1] = addSamplesByArcLength(P1, 2*size(P1, 1));
-    [~, ~, P2] = addSamplesByArcLength(P2, 2*size(P2, 1));
+    if DORESAMPLE
+        %P1, P2 have points evenly spaced by arc length after this
+        [~, ~, P1] = addSamplesByArcLength(P1, 2*size(P1, 1));
+        [~, ~, P2] = addSamplesByArcLength(P2, 2*size(P2, 1));
+    end
     N1 = size(P1, 1);
     N2 = size(P2, 1);
     s1 = linspace(0, 1, N1);

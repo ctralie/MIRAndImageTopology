@@ -37,6 +37,7 @@ void mexFunction(int nOutArray, mxArray *OutArray[], int nInArray, const mxArray
 	double mismatchScore = -3;
 	double gapScore = -2;
 	//Don't penalize as much at the beginning
+	D[0] = 0.0;
 	for (int i = 1; i < N; i++) {
 		D[i] = i*gapScore;
 	}

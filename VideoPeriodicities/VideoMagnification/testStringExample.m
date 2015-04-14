@@ -1,4 +1,4 @@
-obj = VideoReader('guitar.mp4');
+obj = VideoReader('guitar.avi');
 N = obj.NumberOfFrames;
 thisFrame = read(obj, 1);
 

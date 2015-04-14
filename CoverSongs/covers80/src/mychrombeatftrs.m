@@ -1,5 +1,5 @@
 %MODIFIED BY CHRIS TRALIE 4/2/2015: Inputting my own beats
-function [F] = mychrombeatftrs(d,sr,bts,f_ctr,f_sd,type)
+function [F] = mychrombeatftrs(d,sr,bts,nbin,f_ctr,f_sd,type)
 % [F,bts] = chrombeatftrs(D,SR,F_CTR,F_SD,TYPE)
 %    F returns a feature vector of beat-level chroma features (12
 %    rows x n time step columns). bts returns the times of all the
@@ -29,14 +29,14 @@ function [F] = mychrombeatftrs(d,sr,bts,f_ctr,f_sd,type)
 % 
 %   See the file "COPYING" for the text of the license.
 
-if nargin < 4; f_ctr = 1000; end
-if nargin < 5; f_sd = 1; end
-if nargin < 6; type = 1; end
+if nargin < 4; nbin = 12; end
+if nargin < 5; f_ctr = 1000; end
+if nargin < 6; f_sd = 1; end
+if nargin < 7; type = 1; end
 
 
 % Calculate frame-rate chromagram
 fftlen = 2 ^ (round(log(sr*(2048/22050))/log(2)));
-nbin = 12;
 
 if type == 2
   Y = chromagram_E(d,sr,fftlen,nbin,f_ctr,f_sd);

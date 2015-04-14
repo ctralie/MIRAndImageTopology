@@ -4,6 +4,6 @@ function [ ChromaAvg ] = getBeatSyncChromaMatrixEllis( sprefix )
     addpath('../covers80/src');
     song = load(['../covers80/TempoEmbeddings/', sprefix, '.mat']);
     [X, Fs] = audioread(['../covers80/covers32k/', sprefix, '.mp3']);
-    ChromaAvg = mychrombeatftrs(X, Fs, song.bts)';
+    ChromaAvg = mychrombeatftrs(X, Fs, song.bts, 12)';
 end
 
