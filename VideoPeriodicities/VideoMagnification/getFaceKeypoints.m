@@ -1,5 +1,8 @@
-function [Keypoints] = getFaceKeypoints( filename, DOPLOT )
+function [Keypoints] = getFaceKeypoints( filename, FlipY, DOPLOT )
     if nargin < 2
+        FlipY = 0;
+    end
+    if nargin < 3
         DOPLOT = 0;
     end
     disp('Initializing tracker...');
@@ -9,6 +12,11 @@ function [Keypoints] = getFaceKeypoints( filename, DOPLOT )
     N = obj.NumberOfFrames
     
     thisFrame = read(obj, 1);
+    if FlipY
+        for ii = 1:3
+            thisFrame(:, :, ii) = flipud(thisFrame(:, :, ii));
+        end
+    end
     size(thisFrame)
     output.pred = [];%prediction set to null enabling detection
     output = xx_track_detect(DM,TM,thisFrame,output.pred,option);
@@ -20,6 +28,11 @@ function [Keypoints] = getFaceKeypoints( filename, DOPLOT )
     for n = 2:N
         n
         thisFrame = read(obj, n);
+        if FlipY
+            for ii = 1:3
+                thisFrame(:, :, ii) = flipud(thisFrame(:, :, ii));
+            end
+        end
         output = xx_track_detect(DM,TM,thisFrame,output.pred,option);
         Keypoints(n, :, :) = output.pred;
         if DOPLOT

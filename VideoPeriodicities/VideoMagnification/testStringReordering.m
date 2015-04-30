@@ -10,10 +10,10 @@ t = repmat(t, [2, 1]);
 % u = [97; 42];
 % v = [163; 432];
 % 82.4hz E
-% u = [19; 49];
-% v = [91; 432];
-u = [34; 49];
-v = [106; 431];
+u = [19; 49];
+v = [91; 432];
+% u = [34; 49];
+% v = [106; 431];
 
 X = repmat(u, [1 NSamples]) + t.*repmat(v - u, [1 NSamples]);
 X = X';
@@ -33,10 +33,14 @@ thisFrame = reshape(thisFrame, [dims(1), dims(2), 3]);
 ind = repmat(ind(:)', [N, 1]);
 [region, R, theta] = getPixelSubsetEmbedding( 'guitar.mp4', {ind}, 10, 1, 0, 0 );
 clf;
-[pks, locs] = findpeaks(theta);
-locs = locs/FramesPerSec;
-T = mean(locs(2:end) - locs(1:end-1));
-plot((1:length(theta))/FramesPerSec, theta);
-hold on;
-scatter(locs, pks);
-title(sprintf('Estimated Frequency: %g hz', 1/T));
+
+[~, newOrder] = sort(theta);
+obj = VideoReader('guitar.mp4');
+writerObj = VideoWriter('guitarReordered.avi');
+open(writerObj);
+disp('Writing frames in new order...');
+for ii = 1:length(newOrder)
+    ii
+    writeVideo(writerObj, read(obj, newOrder(ii)));
+end
+close(writerObj);
