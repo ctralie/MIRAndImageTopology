@@ -1,15 +1,16 @@
-filename = 'MeMovingLong.mov';
+obj = VideoReader('MeMovingLong.mov');
+FlipY = 1;
+getFrameFn = @(ii) getFrameFnVideoReader(obj, ii, FlipY);
 pdim = 5;
 FlipY = 1;
-Keypoints = getFaceKeypoints(filename, FlipY);
-obj = VideoReader(filename);
-thisFrame = read(obj, 1);
+Keypoints = getFaceKeypoints(getFrameFn);
+thisFrame = getFrameFn(1);
 dims = size(thisFrame);
 KeypointsIdx = 11:14;%Nose keypoints only
 PatchRegions = getKeypointPatches( Keypoints, dims(1:2), KeypointsIdx, pdim );
 
 DelayWindow = 30;
-[region, R, theta] = getPixelSubsetEmbedding( filename, PatchRegions, DelayWindow, 1, 1, 0, FlipY );
+[region, R, theta] = getPixelSubsetEmbedding( getFrameFn, PatchRegions, DelayWindow, 1, 1, 0 );
 
 D = squareform(pdist(R));
 dintervals = [];

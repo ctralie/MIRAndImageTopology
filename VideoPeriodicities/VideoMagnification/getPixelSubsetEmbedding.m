@@ -2,14 +2,17 @@
 %then into a curve in high dimensions, and to use circular coordinates
 %to describe where things are in the curve
 
-%filename: Name of the video
+%getFrameFn(n): Function handle that returns a frame
+%When n = -1, returns number of frames.  When n >= 1, returns frame in
+%question
+
 %PatchRegions: An cell array of regions to examine.  Each cell i contains
 %N regions of size k_i to examine, for each of N frames (allowing motion
 %for each region in time)
 %DelayWindow: How many frames to stack for each point
 %SphereCenter: Whether or not to point-center and sphere normalize
-function [region, R, theta] = getPixelSubsetEmbedding( filename, ...
-    PatchRegions, DelayWindow, SphereCenter, DOAVERAGE, DOPLOT, FlipY )
+function [region, R, theta] = getPixelSubsetEmbedding( getFrameFn, ...
+    PatchRegions, DelayWindow, SphereCenter, DOAVERAGE, DOPLOT )
 
     if nargin < 4
         SphereCenter = 0;
@@ -20,29 +23,35 @@ function [region, R, theta] = getPixelSubsetEmbedding( filename, ...
     if nargin < 6
         DOPLOT = 0;
     end
-    if nargin < 7;
-        FlipY = 0;
-    end
-    obj = VideoReader(filename);
-    N = obj.NumberOfFrames;
-    fprintf(1, '%i frames in %s\n', N, filename);
+    N = getFrameFn(-1);
+    thisFrame = getFrameFn(1);
+    frameDims = size(thisFrame);
+    fprintf(1, 'Reading %i frames...\n', N);
     NRegions = length(PatchRegions);
     if DOAVERAGE
-        region = zeros(N, 3*NRegions);
+        if length(frameDims) > 2
+            %If there is RGB information (for example)
+            region = zeros(N, frameDims(3)*NRegions);
+        else
+            region = zeros(N, NRegions);
+        end
     else
         regionDims = cellfun(@(x) size(x, 2), PatchRegions);
-        region = zeros(N, 3*prod(regionDims));
+        if length(frameDims) > 2
+            region = zeros(N, frameDims(3)*sum(regionDims));
+        else
+            region = zeros(N, sum(regionDims));
+        end
     end
     for ii = 1:N
         ii
-        thisFrame = single(read(obj, ii));
-        if FlipY
-            for kk = 1:3
-                thisFrame(:, :, kk) = flipud(thisFrame(:, :, kk));
-            end
-        end
+        thisFrame = getFrameFn(ii);
         dims = size(thisFrame);
-        thisFrame = reshape(thisFrame, [dims(1)*dims(2), dims(3)]);
+        if length(dims) > 2
+            thisFrame = reshape(thisFrame, [dims(1)*dims(2), dims(3)]);
+        else
+            thisFrame = thisFrame(:);
+        end
         r = [];
         for kk = 1:NRegions
             thisr = thisFrame(PatchRegions{kk}(ii, :), :);
@@ -60,7 +69,6 @@ function [region, R, theta] = getPixelSubsetEmbedding( filename, ...
         R = bsxfun(@times, 1./sqrt(sum(R.^2, 2)), R);
     end
     [~, Y] = pca(R);
-    obj = VideoReader(filename);
     D = squareform(pdist(Y));
     
     %Dumb circular coordinates using atan2 on the first 2 principal
@@ -77,16 +85,15 @@ function [region, R, theta] = getPixelSubsetEmbedding( filename, ...
     for ii = 1:size(Y, 1)
         clf;
         subplot(2, 2, 1);
-        thisFrame = read(obj, ii);
+        thisFrame = getFrameFn(ii);
         %Draw a box around the region of interest whose red channel
         %pulses with the circular coordinates
         dims = size(thisFrame);
-        thisFrame = reshape(thisFrame, [dims(1)*dims(2), dims(3)]);
-        if FlipY
-            for kk = 1:3
-                thisFrame(:, :, kk) = flipud(thisFrame(:, :, kk));
-            end
+        if length(dims) < 3
+            thisFrame = repmat(thisFrame, [1 1 3]);
+            dims = size(thisFrame);
         end
+        thisFrame = reshape(thisFrame, [dims(1)*dims(2), dims(3)]);
         for kk = 1:NRegions
             thisFrame(PatchRegions{kk}(ii, :), 1) = theta(ii);
         end

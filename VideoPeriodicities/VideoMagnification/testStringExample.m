@@ -1,6 +1,7 @@
-obj = VideoReader('guitar.avi');
+obj = VideoReader('guitar.mp4');
 N = obj.NumberOfFrames;
 thisFrame = read(obj, 1);
+getFrameFn = @(ii) getFrameFnVideoReader(obj, ii);
 FramesPerSec = 600;
 
 NSamples = 100; %Number of samples on the string
@@ -31,7 +32,7 @@ thisFrame = reshape(thisFrame, [dims(1), dims(2), 3]);
 %imagesc(thisFrame);
 
 ind = repmat(ind(:)', [N, 1]);
-[region, R, theta] = getPixelSubsetEmbedding( 'guitar.mp4', {ind}, 10, 1, 0, 0 );
+[region, R, theta] = getPixelSubsetEmbedding( getFrameFn, {ind}, 10, 1, 0, 0 );
 clf;
 [pks, locs] = findpeaks(theta);
 locs = locs/FramesPerSec;
