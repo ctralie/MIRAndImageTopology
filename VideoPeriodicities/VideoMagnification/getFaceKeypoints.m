@@ -24,6 +24,10 @@ function [Keypoints] = getFaceKeypoints( getFrameFn, DOPLOT, NFrames )
         n
         thisFrame = getFrameFn(n);
         output = xx_track_detect(DM,TM,thisFrame,output.pred,option);
+        if isempty(output.pred)
+            Keypoints = [];
+            return;
+        end
         Keypoints(n, :, :) = output.pred;
         if DOPLOT
             clf;
