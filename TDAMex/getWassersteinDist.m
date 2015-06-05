@@ -2,17 +2,10 @@
 %S: A Nx2 array of persistence points for the first diagram
 %T: A Mx2 array of persistence points for the second diagram
 function [ matchidx, matchdist, D ] = getWassersteinDist( S, T )
-    wassexp = 2;%Use L2 norm
     N = size(S, 1);
     M = size(T, 1);
     
-    %Step 1:Compute Distance Matrix
-    X = reshape(S, [size(S, 1), 1, size(S, 2)]);
-    X = repmat(X, [1, size(T, 1), 1]);
-    Y = reshape(T, [1, size(T, 1), size(T, 2)]);
-    Y = repmat(Y, [size(S, 1), 1, 1]);
-    DUL = X - Y;
-    DUL = squeeze(sum(DUL.^wassexp, 3)).^(1.0/wassexp);
+    DUL = pdist2(S, T);
     
     %Put diagonal elements into the matrix
     %Rotate the diagrams to make it easy to find the straight line
