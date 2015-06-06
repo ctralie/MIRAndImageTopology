@@ -1,4 +1,6 @@
 MIRAndImageTopology
+
+Work supported in part by NSF Research Training Grant "Structure in Complex Data," NSF-DMS 1045133, an NSF "Big Data" Grant NSF 447491, and an NSF Graduate Research Fellowship
 ===========
 
 Topological data analysis of musical data inspired by music information retrieval (MIR) features, and topological data analysis of images/video using standard image classification features such as HOG
