@@ -1,6 +1,5 @@
 MIRAndImageTopology
 
-Work supported in part by NSF Research Training Grant "Structure in Complex Data," NSF-DMS 1045133, an NSF "Big Data" Grant NSF 447491, and an NSF Graduate Research Fellowship
 ===========
 
 Topological data analysis of musical data inspired by music information retrieval (MIR) features, and topological data analysis of images/video using standard image classification features such as HOG
@@ -18,3 +17,7 @@ Contains my implementation of the sparse column reduction algorithm for computin
 
 * VideoPeriodicities/
 Contains scripts for computing features on video streams (e.g. 3D spatiotemporal HOG), which can be used as an embedding space for topology much the same way as the Marsyas features are for music
+
+
+
+Work supported in part by NSF Research Training Grant "Structure in Complex Data," NSF-DMS 1045133, an NSF "Big Data" Grant NSF 447491, and an NSF Graduate Research Fellowship
