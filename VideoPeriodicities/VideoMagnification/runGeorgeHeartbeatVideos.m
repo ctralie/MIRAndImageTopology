@@ -1,5 +1,5 @@
 fs = dir('FaceDataIR');
-fs = fs(3:end-1, :); %Omit ., .., and Results
+fs = fs(3:end-2, :); %Omit ., .., and Results
 foldernames = cell(1, length(fs));
 fprintf(1, '<html><body>\n');
 for ii = 1:length(fs)
@@ -20,7 +20,11 @@ for ii = 1:length(foldernames)
     personName = personName{3};
     fprintf(1, 'Computing embedding for %s....\n', personName);
     folderoutname = sprintf('FaceDataIR/Results/%s', foldername);
+    if exist(sprintf('%s/EmbeddingData.mat', folderoutname))
+        continue;
+    end
     foldername = sprintf('FaceDataIR/%s', foldername);
+    groundTruthBPM = load(sprintf('%s/groundTruth.txt', foldername));
     if ~exist(folderoutname)
         mkdir(folderoutname);
     end
@@ -56,32 +60,7 @@ for ii = 1:length(foldernames)
     pdim = 10;
     PatchRegions = getKeypointPatches( Keypoints, size(thisFrame), idx, pdim );
     DelayWindow = 30;
-    [region, R, theta] = getPixelSubsetEmbedding( getFrameFnIR, PatchRegions, DelayWindow, 1, 1, 0 );
+    [region, R, theta] = getPixelSubsetEmbedding( getFrameFnIR, PatchRegions, DelayWindow, 0, 1, 0 );
     save(sprintf('%s/EmbeddingData.mat', foldername), 'R', 'theta');
     save(sprintf('%s/EmbeddingData.mat', folderoutname), 'R', 'theta');
-    
-    D = squareform(pdist(R));
-    clf;
-    imagesc(D);
-    title(sprintf('%s Self-Similarity Matrix', personName));
-    print('-dpng', '-r100', sprintf('%s/SSM.png', foldername));
-    print('-dpng', '-r100', sprintf('%s/SSM.png', folderoutname));
-    
-    dintervals = [];
-    for ii = 1:size(D, 1)
-        [~, idx] = findpeaks(D(ii, :));
-        dintervals = [dintervals idx(2:end) - idx(1:end-1)];
-    end
-    dintervals = dintervals/30;
-    clf;
-    hist(dintervals, 100);
-    h = hist(dintervals, 100);
-    meanInt = mean(dintervals);
-    hold on;
-    stem([meanInt meanInt], [0, max(h(:))*1.05], 'r')
-    xlabel('Peak Interval');
-    ylabel('Count');
-    title(sprintf('%s Average Detected Pulse %g BPM', personName, 60/meanInt));
-    print('-dpng', '-r100', sprintf('%s/PulseIntervalHist.png', foldername));
-    print('-dpng', '-r100', sprintf('%s/PulseIntervalHist.png', folderoutname));
 end

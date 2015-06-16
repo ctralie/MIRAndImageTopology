@@ -2,18 +2,23 @@
 %then into a curve in high dimensions, and to use circular coordinates
 %to describe where things are in the curve
 
+%INPUTS:
 %getFrameFn(n): Function handle that returns a frame
-%When n = -1, returns number of frames.  When n >= 1, returns frame in
-%question
-
+    %When n = -1, returns number of frames.  When n >= 1, returns frame in
+    %question
 %PatchRegions: An cell array of regions to examine.  Each cell i contains
 %N regions of size k_i to examine, for each of N frames (allowing motion
 %for each region in time)
 %DelayWindow: How many frames to stack for each point
 %SphereCenter: Whether or not to point-center and sphere normalize
-function [region, R, theta] = getPixelSubsetEmbedding( getFrameFn, ...
-    PatchRegions, DelayWindow, SphereCenter, DOAVERAGE, DOPLOT )
 
+%OUTPUTS:
+%region: The parts of the video that are actually pulled out
+%R: The delay embedding
+%theta: Poorman's arctangent circular coordinates
+%Y: PCA on the delay embedding
+function [region, R, theta, Y] = getPixelSubsetEmbedding( getFrameFn, ...
+    PatchRegions, DelayWindow, SphereCenter, DOAVERAGE, DOPLOT )
     if nargin < 4
         SphereCenter = 0;
     end
@@ -68,8 +73,11 @@ function [region, R, theta] = getPixelSubsetEmbedding( getFrameFn, ...
         R = bsxfun(@minus, mean(R, 1), R);
         R = bsxfun(@times, 1./sqrt(sum(R.^2, 2)), R);
     end
+    disp('Doing PCA...');
     [~, Y] = pca(R);
-    D = squareform(pdist(Y));
+    disp('Finished PCA');
+    dotR = dot(R, R, 2);
+    D = bsxfun(@plus, dotR, dotR') - 2*(R*R'); 
     
     %Dumb circular coordinates using atan2 on the first 2 principal
     %components
@@ -108,9 +116,9 @@ function [region, R, theta] = getPixelSubsetEmbedding( getFrameFn, ...
         axis off;
         
         subplot(2, 2, 3:4);
-        plot(Y(:, 1), Y(:, 2), 'b');
         hold on;
-        plot(Y(1:ii, 1), Y(1:ii, 2), 'r');
+        scatter(Y(1:ii, 1), Y(1:ii, 2), 20, 'r', 'fill');
+        scatter(Y(ii+1:end, 1), Y(ii+1:end, 2), 20, 'b', 'fill');
         scatter(Y(ii, 1), Y(ii, 2), 100, 'k', 'fill');
         title(sprintf('Principal Components %i - %i', pcs(1), pcs(end)));
         axis off;

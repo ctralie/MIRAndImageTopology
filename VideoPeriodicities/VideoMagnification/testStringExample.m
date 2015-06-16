@@ -13,8 +13,10 @@ t = repmat(t, [2, 1]);
 % 82.4hz E
 % u = [19; 49];
 % v = [91; 432];
-u = [34; 49];
-v = [106; 431];
+% u = [34; 49];
+% v = [106; 431];
+u = [21; 62];
+v = [91; 431];
 
 X = repmat(u, [1 NSamples]) + t.*repmat(v - u, [1 NSamples]);
 X = X';
@@ -29,7 +31,7 @@ thisFrame(dists < 3, 2) = 255;
 ind = 1:size(thisFrame, 1);
 ind = ind(dists < 3);
 thisFrame = reshape(thisFrame, [dims(1), dims(2), 3]);
-%imagesc(thisFrame);
+imagesc(thisFrame);
 
 ind = repmat(ind(:)', [N, 1]);
 [region, R, theta] = getPixelSubsetEmbedding( getFrameFn, {ind}, 10, 1, 0, 0 );

@@ -12,6 +12,7 @@ function [ thisFrame ] = getFrameFnFolder( foldername, ii, IRDEPTH )
         filename = [foldername, filesep, typestr, filesep, sprintf('%s_%.4d.png', typestr, ii-1)];
         thisFrame = imread(filename);
         if IRDEPTH == 2
+            thisFrame = double(thisFrame);
             thisFrame = 256*thisFrame(:, :, 2) + thisFrame(:, :, 1);
         end
     end
