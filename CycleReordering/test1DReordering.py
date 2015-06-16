@@ -30,7 +30,7 @@ if __name__ == '__main__':
 	t = np.linspace(0, 2*np.pi*NPeriods, SamplesPerPeriod*NPeriods)
 	tfine = np.linspace(0, 2*np.pi, SamplesPerPeriod*NPeriods)
 	#Magnitudes, frequencies, phases (mfp)
-	mfp = [[1, 1, 0.5], [0.25, 1.5, 0.3]]#, [0.5, 2, 0]]
+	mfp = [[1, 1, 0.5], [0.5, 1.5, 0.3]]#, [0.5, 2, 0]]
 	NSines = len(mfp)
 	#Print latex code for this equation
 	print "\n\n"
@@ -100,6 +100,6 @@ if __name__ == '__main__':
 	#Clean up temporary files
 	subprocess.call(['rm', 'points.bdry'])
 	subprocess.call(['rm', 'points.dgm'])
-	subprocess.call(['rm', 'points.txt'])
+	#subprocess.call(['rm', 'points.txt'])
 	subprocess.call(['rm', 'points.vrt'])
 	subprocess.call(['rm', 'points-0.ccl'])
