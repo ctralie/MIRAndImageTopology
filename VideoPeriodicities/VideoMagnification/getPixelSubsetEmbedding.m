@@ -67,7 +67,8 @@ function [region, R, theta, Y] = getPixelSubsetEmbedding( getFrameFn, ...
         end
         region(ii, :) = r(:)';
     end
-    R = getSmoothedDerivative(region, DelayWindow);
+    %region = getSmoothedDerivative(region, DelayWindow);
+    R = region;
     R = getDelayEmbedding(R, DelayWindow);
     if SphereCenter
         R = bsxfun(@minus, mean(R, 1), R);

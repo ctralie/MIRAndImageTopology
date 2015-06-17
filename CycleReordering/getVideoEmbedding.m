@@ -1,35 +1,40 @@
 addpath('../VideoPeriodicities/VideoMagnification');
-obj = VideoReader('fanreorderedatan.avi');
 
+OUTPUTREGION = 1;
+DODERIV = 0;
 FlipY = 1;
-pdim = 10;
-DelayWindow = 15;
+pdim = 2;
+DelayWindow = 10;
 
+obj = VideoReader('fanmedium.avi');
 getFrameFn = @(ii) getFrameFnVideoReader(obj, ii, FlipY);
-I = getFrameFn(1);
-dims = size(I);
+V = getVideo('fanmedium.avi');
 
-NW = ceil(dims(2)/pdim);
-NH = ceil(dims(1)/pdim);
+[I, newDims] = getPixelGridEmbeddingInMemory( V, pdim, DelayWindow, DODERIV );
 
-PatchRegions = getFixedGridPatches(getFrameFn, pdim, pdim);
-fprintf(1, 'There are %i patch regions, each %i x %i\n', length(PatchRegions), pdim, pdim);
-
-[region, R, theta, Y] = getPixelSubsetEmbedding( getFrameFn, PatchRegions, DelayWindow, 1, 1, 1 );
-IM = reshape(region, [size(region, 1), NH, NW, 3]);
-
-for ii = 1:size(IM, 1)
-    imagesc(squeeze(IM(ii, :, :, 1)));
-    pause(0.3);
+IM = reshape(I, [size(I, 1) newDims(:)' 3]);
+if DODERIV
+    IM = IM - min(IM(:));
+    IM = uint8((255/max(IM(:)))*IM);
+else
+    IM = uint8(IM);
 end
 
+if OUTPUTREGION
+    writerObj = VideoWriter('fanregion.avi');
+    open(writerObj);
+    for ii = 1:size(IM, 1)
+        writeVideo(writerObj, squeeze(IM(ii, :, :, :)));
+    end
+    close(writerObj);
+end
 
-K = 3;
-dotR = dot(R, R, 2);
-DMetric = bsxfun(@plus, dotR, dotR') - 2*(R*R'); 
-[NNF, NNFD, A] = getKNN(DMetric, K);
-D = sum(A, 2);
-L = spdiags(D, 0, speye(size(A, 1)))-A;
+dotI= dot(I, I, 2);
+D = bsxfun(@plus, dotI, dotI') - 2*(I*I');
+D(1:size(D, 1)+1:end) = 0; %Need this for numerical precision
+[Y, latent] = cmdscale(D);
 
-[E, V] = eigs(L, 2, 'sm');
-fiedler = E(:, end-1); %Fiedler vector
+theta = atan2(Y(:, 2), Y(:, 1));
+[~, idx] = sort(theta);
+
+viewVideoReordered(getFrameFn, Y, idx);
