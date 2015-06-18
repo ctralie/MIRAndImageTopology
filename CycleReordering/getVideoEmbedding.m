@@ -1,14 +1,14 @@
 addpath('../VideoPeriodicities/VideoMagnification');
 
 OUTPUTREGION = 1;
-DODERIV = 0;
+DODERIV = 1;
 FlipY = 1;
-pdim = 2;
+pdim = 1;
 DelayWindow = 10;
 
-obj = VideoReader('fanmedium.avi');
+obj = VideoReader('fanmedium_small.avi');
 getFrameFn = @(ii) getFrameFnVideoReader(obj, ii, FlipY);
-V = getVideo('fanmedium.avi');
+V = getVideo('fanmedium_small.avi');
 
 [I, newDims] = getPixelGridEmbeddingInMemory( V, pdim, DelayWindow, DODERIV );
 
@@ -36,4 +36,4 @@ D(1:size(D, 1)+1:end) = 0; %Need this for numerical precision
 
 idx = doTSP(D, 1);
 
-viewVideoReordered(getFrameFn, Y, idx);
+viewVideoReordered(IM, Y, idx);

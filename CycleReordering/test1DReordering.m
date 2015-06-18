@@ -2,11 +2,11 @@ DEBUGFIEDLERMARCH = 1;
 
 %Step 1: Add a bunch of cosines together
 SamplesPerPeriod = 5;
-NPeriods = 30;
+NPeriods = 100;
 K = 2;
 NSamples = NPeriods*SamplesPerPeriod;
 t = linspace(0, 2*pi*NPeriods, NSamples);
-tfine = linspace(0, 8*pi, NSamples);
+tfine = linspace(0, 20*pi, NSamples);
 
 mfp = [1 1 0.5; 0.5 1.5 0.3; 0.25 2 0; 0.3 2 0.1; 0.6 1.3 0];
 NSines = size(mfp, 1);

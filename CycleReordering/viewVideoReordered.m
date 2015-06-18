@@ -1,11 +1,11 @@
-function [] = viewVideoReordered( getFrameFn, Y, idx )
+function [] = viewVideoReordered( V, Y, idx )
     Z = Y(idx, :);
     dotZ = dot(Z, Z, 2);
     D = bsxfun(@plus, dotZ, dotZ') - 2*(Z*Z');
     for ii = 1:size(Y, 1)
         clf;
         subplot(2, 2, 1);
-        thisFrame = getFrameFn(idx(ii));
+        thisFrame = squeeze(V(idx(ii), :, :, :));
         imagesc(thisFrame);
         axis off;
         
@@ -20,7 +20,7 @@ function [] = viewVideoReordered( getFrameFn, Y, idx )
         scatter(Y(:, 1), Y(:, 2), 20, 'r', 'fill');
         scatter(Y(idx(ii), 1), Y(idx(ii), 2), 100, 'k', 'fill');
         axis off;
-        print('-dpng', '-r200', sprintf('%i.png', ii));
+        print('-dpng', '-r00', sprintf('%i.png', ii));
     end
 end
 
