@@ -6,9 +6,9 @@ NPeriods = 30;
 K = 2;
 NSamples = NPeriods*SamplesPerPeriod;
 t = linspace(0, 2*pi*NPeriods, NSamples);
-tfine = linspace(0, 4*pi, NSamples);
+tfine = linspace(0, 8*pi, NSamples);
 
-mfp = [1 1 0.5; 0.5 1.5 0.3; 0.25 2 0];
+mfp = [1 1 0.5; 0.5 1.5 0.3; 0.25 2 0; 0.3 2 0.1; 0.6 1.3 0];
 NSines = size(mfp, 1);
 
 y = zeros(NSines, NSamples);
@@ -26,10 +26,12 @@ for ii = 1:2*NSines
     Y(:, ii) = y(ii:length(y)-NSines*2+ii);
 end
 
-%Step 3: Fiedler March
-[fiedler, path, A] = fiedlerMarch( Y, K, 0 );
+% %Step 3: Fiedler March
+% [fiedler, path, A] = fiedlerMarch( Y, K, 0 );
+path = doTSP(squareform(pdist(Y)), 1);
 
 %Step 4: Plot
+figure(1);
 clf;
 subplot(2, 2, 1);
 plot(y);
@@ -40,18 +42,11 @@ title('Ground Truth Fine');
 
 subplot(2, 2, 4);
 plot(y(path));
-title(sprintf('Resorted After Fiedler March (%i NN)', K));
+title(sprintf('Resorted After Fiedler TSP', K));
 
 subplot(2, 2, 3);
 [~, Z, latent] = pca(Y);
 Z = Z(:, 1:3);
 C = colormap(sprintf('jet(%i)', size(Z, 1)));
 scatter3(Z(path, 1), Z(path, 2), Z(path, 3), 20, C, 'fill');
-hold on;
-for ii = 1:size(Z, 1)
-    for jj = find(A(ii, :))
-        P = [Z(ii, :); Z(jj, :)];
-        plot3(P(:, 1), P(:, 2), P(:, 3), 'r');
-    end
-end
 title(sprintf('3D PCA (%.3g Percent Var)', 100*sum(latent(1:3))/sum(latent)));

@@ -34,7 +34,6 @@ D = bsxfun(@plus, dotI, dotI') - 2*(I*I');
 D(1:size(D, 1)+1:end) = 0; %Need this for numerical precision
 [Y, latent] = cmdscale(D);
 
-theta = atan2(Y(:, 2), Y(:, 1));
-[~, idx] = sort(theta);
+idx = doTSP(D, 1);
 
 viewVideoReordered(getFrameFn, Y, idx);
