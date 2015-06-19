@@ -3,10 +3,10 @@ AUTOMATED = 1;
 windowLens = [3, 5, 9, 11];
 SamplesPerPeriods = [5, 10, 20];
 NPeriodss = [20, 50];
-Sines = cell(1, 3);
-Sines{1} = [1 1 0.5];
-Sines{2} = [1 1 0.5; 0.5 1.5 0.3];
-Sines{3} = [1 1 0.5; 0.5 1.5 0.3; 0.8 2 0];
+Sines = {};
+%Sines{end+1} = [1 1 0.5];
+Sines{end+1} = [1 1 0.5; 0.5 1.5 0.3];
+%Sines{end+1} = [1 1 0.5; 0.5 1.5 0.3; 0.8 2 0];
 
 [i1, i2, i3, i4] = ndgrid(1:length(windowLens), 1:length(SamplesPerPeriods), 1:length(NPeriodss), 1:length(Sines));
 I = [i1(:), i2(:), i3(:), i4(:)];

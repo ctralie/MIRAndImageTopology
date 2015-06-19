@@ -1,30 +1,45 @@
 DEBUGFIEDLERMARCH = 1;
 
 %Step 1: Add a bunch of cosines together
-SamplesPerPeriod = 5;
-NPeriods = 100;
-K = 2;
+SamplesPerPeriod = 100;
+NPeriods = 30;
 NSamples = NPeriods*SamplesPerPeriod;
-t = linspace(0, 2*pi*NPeriods, NSamples);
-tfine = linspace(0, 20*pi, NSamples);
-
-mfp = [1 1 0.5; 0.5 1.5 0.3; 0.25 2 0; 0.3 2 0.1; 0.6 1.3 0];
+mfp = [1 1 0.5; 0.5 1.5 0.3; 0.25 2 0];%; 0.3 2 0.1; 0.6 1.3 0];
 NSines = size(mfp, 1);
+
+%Figure out the full period length (assuming I only go out to 1 decimal
+%place with my frequencies)
+Period = 2;
+Period = Period*2*pi;
+
+t = linspace(0, Period*NPeriods, NSamples);
+%Come up with h(t), a monotonic time warping transformation
+ht = randn(1, length(t));
+ht = ht - min(ht);
+ht = cumsum(ht);
+ht = ht*Period*NPeriods/max(ht);
+ht = mean([ht; t; t; t; t], 1);
+NSamples = length(ht);
+tfine = linspace(0, Period, NSamples);
 
 y = zeros(NSines, NSamples);
 yfine = zeros(NSines, NSamples);
 for ii = 1:NSines
-    y(ii, :) = mfp(ii, 1)*sin(mfp(ii, 2)*t + mfp(ii, 3));
+    y(ii, :) = mfp(ii, 1)*sin(mfp(ii, 2)*ht + mfp(ii, 3));
     yfine(ii, :) = mfp(ii, 1)*sin(mfp(ii, 2)*tfine + mfp(ii, 3));
 end
 y = sum(y, 1)';
 yfine = sum(yfine, 1)';
 
 %Step 2: Delay embedding (need 2*number of Fourier component dimensions)
-Y = zeros(length(y) - 2*NSines + 1, 2*NSines);
-for ii = 1:2*NSines
-    Y(:, ii) = y(ii:length(y)-NSines*2+ii);
+WindowLen = 2*NSines;
+Y = zeros(length(y) - 2*WindowLen + 1, 2*WindowLen);
+for ii = 1:2*WindowLen
+    Y(:, ii) = y(ii:length(y)-WindowLen*2+ii);
 end
+
+[~, Z] = pca(Y);
+plot3(Z(:, 1), Z(:, 2), Z(:, 3), '.');
 
 % %Step 3: Fiedler March
 % [fiedler, path, A] = fiedlerMarch( Y, K, 0 );
@@ -42,7 +57,7 @@ title('Ground Truth Fine');
 
 subplot(2, 2, 4);
 plot(y(path));
-title(sprintf('Resorted After Fiedler TSP', K));
+title('Resorted After TSP');
 
 subplot(2, 2, 3);
 [~, Z, latent] = pca(Y);

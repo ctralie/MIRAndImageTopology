@@ -67,18 +67,21 @@ function [region, R, theta, Y] = getPixelSubsetEmbedding( getFrameFn, ...
         end
         region(ii, :) = r(:)';
     end
-    %region = getSmoothedDerivative(region, DelayWindow);
-    R = region;
-    R = getDelayEmbedding(R, DelayWindow);
+    region = getSmoothedDerivative(region, DelayWindow);
+    R = getDelayEmbedding(region, DelayWindow);
     if SphereCenter
+        disp('Sphere Centering');
         R = bsxfun(@minus, mean(R, 1), R);
         R = bsxfun(@times, 1./sqrt(sum(R.^2, 2)), R);
     end
-    disp('Doing PCA...');
-    [~, Y] = pca(R);
-    disp('Finished PCA');
     dotR = dot(R, R, 2);
-    D = bsxfun(@plus, dotR, dotR') - 2*(R*R'); 
+    D = bsxfun(@plus, dotR, dotR') - 2*(R*R');     
+    disp('Doing PCA...');
+    %Fast PCA by reducing dimension since ambient space is so much higher
+    %than number of point samples in most cases
+    D(1:size(D, 1)+1:end) = 0;
+    Y = cmdscale(D);
+    disp('Finished PCA');
     
     %Dumb circular coordinates using atan2 on the first 2 principal
     %components
