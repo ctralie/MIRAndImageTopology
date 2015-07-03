@@ -15,5 +15,8 @@ function [I, newDims] = getPixelGridEmbeddingInMemory( V, pdim, DelayWindow, DOD
         I = getSmoothedDerivative(I, DelayWindow);
         toc;
     end
+    if DelayWindow > 1
+        I = getDelayEmbedding(I, DelayWindow);
+    end
 end
 
