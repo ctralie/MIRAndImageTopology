@@ -6,9 +6,11 @@ FlipY = 0;
 pdim = 1;
 DelayWindow = 10;
 
-obj = VideoReader('standingwave.ogg');
+filename = 'standingwave20modes.ogg';
+%filename = 'fanmedium_small.avi';
+obj = VideoReader(filename);
 getFrameFn = @(ii) getFrameFnVideoReader(obj, ii, FlipY);
-V = getVideo('standingwave.ogg');
+V = getVideo(filename);
 
 [I, newDims] = getPixelGridEmbeddingInMemory( V, pdim, DelayWindow, DODERIV );
 
@@ -28,6 +30,8 @@ if OUTPUTREGION && DelayWindow == 1
     close(writerObj);
 end
 
+disp('Doing PCA...');
+tic;
 I = bsxfun(@minus, I, mean(I, 1));
 I = bsxfun(@times, 1./sqrt(sum(I.^2, 2)), I);
 dotI= dot(I, I, 2);
@@ -37,8 +41,9 @@ D(D < 0) = 0;
 D = D + D';
 D(1:size(D, 1)+1:end) = 0;
 [Y, latent] = cmdscale(D);
+toc;
 
 idx = doTSP(D, 1);
 %idx = 1:size(D, 1);
 
-viewVideoReordered(IM, Y, idx);
+viewVideoReordered(V, Y, idx);

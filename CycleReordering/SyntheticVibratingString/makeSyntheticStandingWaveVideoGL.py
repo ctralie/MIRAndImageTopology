@@ -1,4 +1,4 @@
-#Create a synthetic standing wave video using PyOpenGL
+#Create a synthetic standing triangle wave video using PyOpenGL
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
@@ -48,19 +48,21 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
         self.Playing = False
         
         #Vibrating string variables
-        NHarmonics = 10
-        NSamples = 1000
-        Amplitude = 1
-        self.x = np.linspace(-1, 1, NSamples)
-        #y holds the wave at its full extension
-        y = np.zeros(NSamples)
-        for h in range(1, NHarmonics+1):
-            y = y + (1/np.exp(h))*np.sin(np.pi*h*(self.x+1)/2);
-        self.y = Amplitude*y
+        self.NSamples = 1000
+        self.Amplitude = 0.5
+        self.NHarmonics = 20
+        
+        self.x = np.linspace(-1, 1, self.NSamples)
         NPeriods = 50
         SamplesPerPeriod = 10
         self.t = np.linspace(0, 2*np.pi*NPeriods, NPeriods*SamplesPerPeriod)
         
+        y = np.zeros(self.NSamples)
+        for h in np.arange(1, 2*self.NHarmonics+1, 2):
+            print h
+            y += (1.0/h**2)*((-1)**((h-1)/2))*np.sin(h*np.pi*(self.x+1)/2)
+        self.Amplitude = self.Amplitude/np.max(y)        
+                
         self.GLinitialized = False
         #GL-related events
         wx.EVT_ERASE_BACKGROUND(self, self.processEraseBackgroundEvent)
@@ -98,16 +100,20 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
         glColor3f(0, 0, 0)
         glLineWidth(2)
         
-        wave = np.cos(self.t[self.tidx])*self.y
+        #y holds the wave at its full extension
+        y = np.zeros(self.NSamples)
+        for h in np.arange(1, 2*self.NHarmonics+1, 2):
+            y += (1.0/h**2)*((-1)**((h-1)/2))*np.cos(h*self.t[self.tidx])*np.sin(h*np.pi*(self.x+1)/2)
+        y = self.Amplitude*y
         
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
 
         #Do this the slow way without vertex buffers because I'm lazy
         glBegin(GL_LINES)
-        for i in range(wave.size - 1):
-            glVertex2f(self.x[i], wave[i])
-            glVertex2f(self.x[i+1], wave[i+1])
+        for i in range(self.x.size - 1):
+            glVertex2f(self.x[i], y[i])
+            glVertex2f(self.x[i+1], y[i+1])
         glEnd()
         self.SwapBuffers()
         if self.Playing:

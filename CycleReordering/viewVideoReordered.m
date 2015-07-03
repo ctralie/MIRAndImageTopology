@@ -5,7 +5,7 @@ function [] = viewVideoReordered( V, Y, idx )
     for ii = 1:size(Y, 1)
         clf;
         subplot(2, 2, 1);
-        thisFrame = squeeze(V(idx(ii), :, :, :));
+        thisFrame = V{idx(ii)};
         imagesc(thisFrame);
         axis off;
         

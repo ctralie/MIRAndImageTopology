@@ -1,11 +1,11 @@
 Width = 400;
 Height = 200;
 Sigma = 0.01;
-x = linspace(0, 1, Width);
-NHarmonics = 20;
+x = linspace(0, 2, Width);
+NHarmonics = 100;
 y = zeros(1, length(x));
-for h = 1:NHarmonics
-    y = y + (1/h^2)*sin(pi*h*x);
+for h = 1:2:NHarmonics*2+1
+    y = y + (1/h^2)*((-1)^((h-1)/2))*sin(pi*h*x);
 end
 y = (0.95/max(y))*y;
 HeightFac = 100;
