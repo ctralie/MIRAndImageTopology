@@ -17,19 +17,35 @@ import os
 import math
 import time
 
-DEFAULT_SIZE = wx.Size(400, 200)
+import PIL.Image as Image
+
+ANTIALIAS_FACTOR = 20
+IMWIDTH = 300
+IMHEIGHT = 150
+STRINGWIDTH = 5
+
+DEFAULT_SIZE = wx.Size(IMWIDTH*ANTIALIAS_FACTOR, IMHEIGHT*ANTIALIAS_FACTOR)
 DEFAULT_POS = wx.Point(10, 10)
 MAXPOINTS = -1
 
 def saveImageGL(mvcanvas, filename):
+    view = glGetIntegerv(GL_VIEWPORT)
+    print "(%i, %i)\n"%(view[2], view[3])
+    pixels = glReadPixels(0, 0, view[2], view[3], GL_RGB,
+                     GL_UNSIGNED_BYTE)
+    img = Image.fromstring('RGB', (view[2], view[3]), pixels)
+    img = img.resize((IMWIDTH, IMHEIGHT), Image.ANTIALIAS)
+    img.save(filename)
+
+def saveImageGLWX(mvcanvas, filename):
     view = glGetIntegerv(GL_VIEWPORT)
     img = wx.EmptyImage(view[2], view[3] )
     pixels = glReadPixels(0, 0, view[2], view[3], GL_RGB,
                      GL_UNSIGNED_BYTE)
     img.SetData( pixels )
     img = img.Mirror(False)
+    img.Rescale(IMWIDTH, IMHEIGHT)
     img.SaveFile(filename, wx.BITMAP_TYPE_PNG)
-
 
 class LoopDittyCanvas(glcanvas.GLCanvas):
     def __init__(self, parent):
@@ -49,7 +65,7 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
         
         #Vibrating string variables
         self.NSamples = 1000
-        self.Amplitude = 0.5
+        self.Amplitude = 1.0/IMHEIGHT #1 pixel amplitude
         self.NHarmonics = 20
         
         self.x = np.linspace(-1, 1, self.NSamples)
@@ -98,7 +114,6 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
 
         glDisable(GL_LIGHTING)
         glColor3f(0, 0, 0)
-        glLineWidth(2)
         
         #y holds the wave at its full extension
         y = np.zeros(self.NSamples)
@@ -125,6 +140,7 @@ class LoopDittyCanvas(glcanvas.GLCanvas):
         glutInit('')
         glEnable(GL_NORMALIZE)
         glEnable(GL_DEPTH_TEST)
+        glLineWidth(STRINGWIDTH*ANTIALIAS_FACTOR)
 
 class LoopDittyFrame(wx.Frame):
     def __init__(self, parent, id, title, pos=DEFAULT_POS, size=DEFAULT_SIZE, style=wx.DEFAULT_FRAME_STYLE, name = 'GLWindow'):

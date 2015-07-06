@@ -1,39 +1,34 @@
-Width = 400;
-Height = 200;
-Sigma = 0.01;
-x = linspace(0, 2, Width);
-NHarmonics = 100;
-y = zeros(1, length(x));
-for h = 1:2:NHarmonics*2+1
-    y = y + (1/h^2)*((-1)^((h-1)/2))*sin(pi*h*x);
-end
-y = (0.95/max(y))*y;
-HeightFac = 100;
+ANTIALIAS_FACTOR = 20;
+IMWIDTH = 300;
+IMHEIGHT = 150;
+STRINGWIDTH = 5;
 
-height = linspace(-1, 1, HeightFac*Height);
-height = repmat(height(:), [1 length(x)]);
-t = linspace(0, 32*pi, 100);
-V = zeros(length(t), Height, Width, 3);
-disp('Generating Frames');
-for ii = 1:length(t)
-    ii
-    wave = sin(t(ii))*y;
-    wave = repmat(wave, [HeightFac*Height, 1]);
-    IM = (wave-height).^2;
-    IM = exp(-IM/(Sigma^2));
-    IM = imresize(IM, [Height, Width]);
-    IM = bsxfun(@times, 1./sum(IM, 1), IM);
-    for cc = 1:3
-        V(ii, :, :, cc) = IM;
+NSamples = 1000;
+Amplitude = 1.0;% #1 pixel amplitude
+NHarmonics = 20;
+
+x = linspace(-1, 1, NSamples);
+NPeriods = 50;
+SamplesPerPeriod = 10;
+t = linspace(0, 2*pi*NPeriods, NPeriods*SamplesPerPeriod);
+
+y = zeros(1, NSamples);
+for h = 1:2:2*NHarmonics+1
+    y = y + (1.0/h^2)*((-1).^((h-1)/2)).*sin(h*pi*(x+1)/2);
+end
+Amplitude = Amplitude/max(y);
+
+for tidx = 1:length(t)
+    tidx
+    y = zeros(1, NSamples);
+    for h = 1:2:2*NHarmonics+1
+        y = y + (1.0/h^2)*((-1)^((h-1)/2)).*cos(h*t(tidx)).*sin(h*pi*(x+1)/2);
     end
+    y = Amplitude*y;
+    plot(x, y, 'LineWidth', STRINGWIDTH);
+    xlim([-1, 1]);
+    ylim([-1, 1]);
+    axis off;
+    print('-dpng', sprintf('-r%i', 25*ANTIALIAS_FACTOR), sprintf('%i.png', tidx));
+    system(sprintf('convert %i.png -scale %ix%i %i.png', tidx, IMWIDTH, IMHEIGHT, tidx));
 end
-V = uint8((255/max(V(:)))*V);
-
-disp('Writing Video');
-writerObj = VideoWriter('standingwave.avi');
-open(writerObj);
-for ii = 1:size(V, 1)
-    ii
-    writeVideo(writerObj, squeeze(V(ii, :, :, :)));
-end
-close(writerObj);

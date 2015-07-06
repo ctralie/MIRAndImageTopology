@@ -6,7 +6,7 @@ FlipY = 0;
 pdim = 1;
 DelayWindow = 10;
 
-filename = 'standingwave20modes.ogg';
+filename = 'triwave20aa.ogg';
 %filename = 'fanmedium_small.avi';
 obj = VideoReader(filename);
 getFrameFn = @(ii) getFrameFnVideoReader(obj, ii, FlipY);
@@ -33,7 +33,7 @@ end
 disp('Doing PCA...');
 tic;
 I = bsxfun(@minus, I, mean(I, 1));
-I = bsxfun(@times, 1./sqrt(sum(I.^2, 2)), I);
+% I = bsxfun(@times, 1./sqrt(sum(I.^2, 2)), I);
 dotI= dot(I, I, 2);
 D = bsxfun(@plus, dotI, dotI') - 2*(I*I');
 %Need this for numerical precision

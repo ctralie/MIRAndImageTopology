@@ -20,7 +20,7 @@ function [] = viewVideoReordered( V, Y, idx )
         scatter(Y(:, 1), Y(:, 2), 20, 'r', 'fill');
         scatter(Y(idx(ii), 1), Y(idx(ii), 2), 100, 'k', 'fill');
         axis off;
-        print('-dpng', '-r00', sprintf('%i.png', ii));
+        print('-dpng', '-r100', sprintf('%i.png', ii));
     end
 end
 
