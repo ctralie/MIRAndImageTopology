@@ -4,13 +4,20 @@ OUTPUTREGION = 0;
 DODERIV = 0;
 FlipY = 0;
 pdim = 1;
-DelayWindow = 10;
+DelayWindow = 30;
+NPCs = 12;
 
-filename = 'triwave20aa.ogg';
+%filename = 'standingwave1modeaa.ogg';
 %filename = 'fanmedium_small.avi';
-obj = VideoReader(filename);
-getFrameFn = @(ii) getFrameFnVideoReader(obj, ii, FlipY);
-V = getVideo(filename);
+%obj = VideoReader(filename);
+%getFrameFn = @(ii) getFrameFnVideoReader(obj, ii, FlipY);
+%V = getVideo(filename);
+
+foldername = 'standingwave1modesmallaa';
+V = getVideoFromFiles(foldername);
+
+%V = getVideo('face.avi', [100, 100]);
+%foldername = 'face';
 
 [I, newDims] = getPixelGridEmbeddingInMemory( V, pdim, DelayWindow, DODERIV );
 
@@ -33,7 +40,7 @@ end
 disp('Doing PCA...');
 tic;
 I = bsxfun(@minus, I, mean(I, 1));
-% I = bsxfun(@times, 1./sqrt(sum(I.^2, 2)), I);
+I = bsxfun(@times, 1./sqrt(sum(I.^2, 2)), I);
 dotI= dot(I, I, 2);
 D = bsxfun(@plus, dotI, dotI') - 2*(I*I');
 %Need this for numerical precision
@@ -41,8 +48,18 @@ D(D < 0) = 0;
 D = D + D';
 D(1:size(D, 1)+1:end) = 0;
 [Y, latent] = cmdscale(D);
-toc;
 
+%Compute principal components
+[~, S, PCs] = svds(I, NPCs);
+toc;
+PCs = reshape(PCs, [DelayWindow, size(V{1}), size(PCs, 2)]);
+PCs = shiftdim(PCs, 1);
+NonzeroCanvas = abs(PCs) > 0.05;
+
+%TODO: Amplify first two principal components
+outputPCs( PCs, foldername );
+
+close all;
 idx = doTSP(D, 1);
 %idx = 1:size(D, 1);
 
