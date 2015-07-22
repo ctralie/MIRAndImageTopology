@@ -1,5 +1,5 @@
 %Output principal components
-function [] = outputPCs( PCs, foldername )
+function [] = outputPCs( V, PCs, foldername, NPCs, DelayWindow, imsize )
     %Scale to range [0, 1] so they can be written as video
     PCs = PCs - min(PCs(:));
     PCs = PCs / max(PCs(:));
@@ -15,6 +15,9 @@ function [] = outputPCs( PCs, foldername )
                 frame = squeeze(PCs(:, :, :, ii, kk));
             else
                 frame = squeeze(PCs(:, :, ii, kk));
+            end
+            if nargin > 5
+                frame = imresize(frame, imsize);
             end
             writeVideo(writerObj, frame);
             imwrite(frame, sprintf('%s/PCs/%i_%i.png', foldername, ii, kk));

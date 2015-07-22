@@ -13,11 +13,11 @@ NPCs = 12;
 %getFrameFn = @(ii) getFrameFnVideoReader(obj, ii, FlipY);
 %V = getVideo(filename);
 
-foldername = 'standingwave1modesmallaa';
-V = getVideoFromFiles(foldername);
+% foldername = 'standingwave1modesmallaa';
+% V = getVideoFromFiles(foldername);
 
-%V = getVideo('face.avi', [100, 100]);
-%foldername = 'face';
+V = getVideo('face.avi', [100, 100]);
+foldername = 'face';
 
 [I, newDims] = getPixelGridEmbeddingInMemory( V, pdim, DelayWindow, DODERIV );
 
@@ -40,7 +40,7 @@ end
 disp('Doing PCA...');
 tic;
 I = bsxfun(@minus, I, mean(I, 1));
-I = bsxfun(@times, 1./sqrt(sum(I.^2, 2)), I);
+%I = bsxfun(@times, 1./sqrt(sum(I.^2, 2)), I);
 dotI= dot(I, I, 2);
 D = bsxfun(@plus, dotI, dotI') - 2*(I*I');
 %Need this for numerical precision
@@ -52,15 +52,22 @@ D(1:size(D, 1)+1:end) = 0;
 %Compute principal components
 [~, S, PCs] = svds(I, NPCs);
 toc;
+%TODO: Amplify first two principal components
+VOut = getVideo('face.avi');
+alphas = zeros(1, NPCs);
+alphas(1:2) = 1;
+VOut = amplifyPCs(V, VOut, I, PCs, alphas, DelayWindow);
+saveVideo(VOut, 'faceamp2_0.2.avi');
+
+
 PCs = reshape(PCs, [DelayWindow, size(V{1}), size(PCs, 2)]);
 PCs = shiftdim(PCs, 1);
 NonzeroCanvas = abs(PCs) > 0.05;
-
-%TODO: Amplify first two principal components
-outputPCs( PCs, foldername );
+%Output principal components as videos
+%outputPCs( V, PCs, foldername, NPCs, DelayWindow, [400, 400] );
 
 close all;
-idx = doTSP(D, 1);
-%idx = 1:size(D, 1);
+%idx = doTSP(D, 1);
+idx = 1:size(D, 1);
 
-viewVideoReordered(V, Y, idx);
+viewVideoReordered(VOut, Y, idx);
