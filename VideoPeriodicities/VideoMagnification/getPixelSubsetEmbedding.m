@@ -18,7 +18,7 @@
 %theta: Poorman's arctangent circular coordinates
 %Y: PCA on the delay embedding
 function [region, R, theta, Y] = getPixelSubsetEmbedding( getFrameFn, ...
-    PatchRegions, DelayWindow, SphereCenter, DOAVERAGE, DOPLOT )
+    PatchRegions, DelayWindow, SphereCenter, DOAVERAGE, DODERIV, DOPLOT )
     if nargin < 4
         SphereCenter = 0;
     end
@@ -26,6 +26,9 @@ function [region, R, theta, Y] = getPixelSubsetEmbedding( getFrameFn, ...
         DOAVERAGE = 1;
     end
     if nargin < 6
+        DODERIV = 0;
+    end
+    if nargin < 7
         DOPLOT = 0;
     end
     N = getFrameFn(-1);
@@ -67,29 +70,33 @@ function [region, R, theta, Y] = getPixelSubsetEmbedding( getFrameFn, ...
         end
         region(ii, :) = r(:)';
     end
-    region = getSmoothedDerivative(region, DelayWindow);
+    if DODERIV
+        region = getSmoothedDerivative(region, DelayWindow);
+    end
     R = getDelayEmbedding(region, DelayWindow);
     if SphereCenter
         disp('Sphere Centering');
         R = bsxfun(@minus, mean(R, 1), R);
         R = bsxfun(@times, 1./sqrt(sum(R.^2, 2)), R);
     end
-    dotR = dot(R, R, 2);
-    D = bsxfun(@plus, dotR, dotR') - 2*(R*R');     
-    disp('Doing PCA...');
-    %Fast PCA by reducing dimension since ambient space is so much higher
-    %than number of point samples in most cases
-    D(1:size(D, 1)+1:end) = 0;
-    Y = cmdscale(D);
-    disp('Finished PCA');
-    
-    %Dumb circular coordinates using atan2 on the first 2 principal
-    %components
-    theta = atan2(Y(:, 2), Y(:, 1));
-    theta(theta > pi) = -theta(theta > pi);
-    theta = mod(theta, 2*pi);
-    theta = 255*theta/(2*pi);
-    pcs = 1:2;
+    if nargout > 2
+        dotR = dot(R, R, 2);
+        D = bsxfun(@plus, dotR, dotR') - 2*(R*R');     
+        disp('Doing PCA...');
+        %Fast PCA by reducing dimension since ambient space is so much higher
+        %than number of point samples in most cases
+        D(1:size(D, 1)+1:end) = 0;
+        Y = cmdscale(D);
+        disp('Finished PCA');
+
+        %Dumb circular coordinates using atan2 on the first 2 principal
+        %components
+        theta = atan2(Y(:, 2), Y(:, 1));
+        theta(theta > pi) = -theta(theta > pi);
+        theta = mod(theta, 2*pi);
+        theta = 255*theta/(2*pi);
+        pcs = 1:2;
+    end
     
     if DOPLOT == 0
         return;

@@ -1,12 +1,19 @@
-function [ VOut ] = amplifyPCs( V, VOut, I, PCs, alphas, DelayWindow )
+function [ VOut, IProj ] = amplifyPCs( V, VOut, I, PCs, alphas, DelayWindow, pixelloc )
     N = length(V);
     NI = size(I, 1);
     %Add back principal components with weights
     IProj = I*PCs;
     IProj = bsxfun(@times, alphas(:)', IProj);
-    I = IProj*PCs';
-    I = reshape(I', [DelayWindow, size(V{1}), size(I, 1)]);
-    I = shiftdim(I, 1);
+    IProj = IProj*PCs';
+    if nargin < 7
+        %If using the entire video
+        IProj = reshape(IProj', [DelayWindow, size(V{1}), size(IProj, 1)]);
+        IProj = shiftdim(IProj, 1);
+    else
+        %If using a pixel subset (assume RGB)
+        IProj = reshape(IProj', [DelayWindow, length(pixelloc), 3, size(I, 1)]);
+        IProj = shiftdim(IProj, 1);
+    end
     
     newSize = size(VOut{1});
     %Each frame is the mean of the frame in all of the delay windows
@@ -30,10 +37,18 @@ function [ VOut ] = amplifyPCs( V, VOut, I, PCs, alphas, DelayWindow )
             frameloc = DelayWindow:-1:1;
         end
         for kk = 1:length(idxs)
-            if length(size(F)) == 3
-                F = F + I(:, :, :, idxs(kk), frameloc(kk));
+            if nargin < 7
+                %If using the entire video
+                if length(size(F)) == 3
+                    F = F + IProj(:, :, :, idxs(kk), frameloc(kk));
+                else
+                    F = F + IProj(:, :, idxs(kk), frameloc(kk));
+                end
             else
-                F = F + I(:, :, idxs(kk), frameloc(kk));
+                %If using a pixel subset (assume RGB)
+                thisF = zeros(size(F, 1)*size(F, 2), 3);
+                thisF(pixelloc, :) = IProj(:, :, idxs(kk), frameloc(kk));
+                F = F + reshape(thisF, size(F));
             end
         end
         %Resize to larger image if it was downsized
