@@ -19,25 +19,31 @@ parfor ii = 1:length(files)
     [M, env] = onsetenv(X, Fs);
     Y = get1DDelayEmbedding(env, 125, 1);
     
-    D = bsxfun(@plus, sum(Y.^2, 2), sum(Y.^2, 2)') - 2*(Y*Y');
-    D(D < 0) = 0;
-    D = 0.5*(D+D');
-    D(1:size(D, 1)+1:end) = 0;
-    D = sqrt(D);
-    
+%     D = bsxfun(@plus, sum(Y.^2, 2), sum(Y.^2, 2)') - 2*(Y*Y');
+%     D(D < 0) = 0;
+%     D = 0.5*(D+D');
+%     D(1:size(D, 1)+1:end) = 0;
+%     D = sqrt(D);
+%     
 %     diagsum = zeros(1, size(D, 1));
 %     for kk = 1:size(D, 1)
 %         diagsum(kk) = sum(diag(D, kk-1));
 %     end
 %     diagsum = diagsum./(length(diagsum):-1:1);
-    diagsum = zeros(1, size(D, 1));
-    for kk = 1:size(D, 1)
-        diagsum(kk) = sum(D(kk:size(D, 1)+1:end));
+%     diagsum = zeros(1, size(D, 1));
+%     for kk = 1:size(D, 1)
+%         diagsum(kk) = sum(D(kk:size(D, 1)+1:end));
+%     end
+% 
+%     fftdiag = abs(fft(diagsum));
+%     fftdiag(1) = 0;
+%     fftdiag = fftdiag/max(fftdiag);
+    
+    fftdiag = zeros(size(Y, 1), 1);
+    for kk = 1:8
+        fftdiag = fftdiag + abs(fft(Y(:, kk)));
     end
 
-    fftdiag = abs(fft(diagsum));
-    fftdiag(1) = 0;
-    fftdiag = fftdiag/max(fftdiag);
     Kurts(ii) = kurtosis(fftdiag);
     KurtsEnv(ii) = kurtosis(abs(fft(env)));
 end
